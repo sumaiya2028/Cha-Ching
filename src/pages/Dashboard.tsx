@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -251,11 +250,10 @@ const Dashboard = () => {
                           </div>
                           <Progress 
                             value={(goal.current / goal.target) * 100} 
-                            className="h-2"
+                            className="h-2 bg-gray-800 overflow-hidden"
                             style={{
                               background: 'rgba(255, 255, 255, 0.1)',
                             }}
-                            indicatorClassName="bg-gradient-to-r from-neon-purple to-neon-magenta"
                           />
                           <div className="flex justify-end gap-2 pt-1">
                             {[50, 100, 200].map((amount) => (
