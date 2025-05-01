@@ -43,11 +43,6 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 224.3 76.3% 48%;
-    
-    --neon-purple: #9b87f5;
-    --neon-magenta: #D946EF;
-    --neon-cyan: #1EAEDB;
-    --neon-orange: #F97316;
   }
 }
 
@@ -92,12 +87,4 @@
 
 .floating {
   animation: float 3s ease-in-out infinite;
-}
-
-/* Add CSS variables for neon colors for easy access in JS */
-:root {
-  --neon-purple: #9b87f5;
-  --neon-magenta: #D946EF;
-  --neon-cyan: #1EAEDB;
-  --neon-orange: #F97316;
 }
