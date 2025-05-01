@@ -81,7 +81,9 @@ const Dashboard = () => {
   
   return (
     <div className="min-h-screen flex bg-background">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="w-56 bg-sidebar">
+    <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+  </div>
       
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="max-w-7xl mx-auto">
