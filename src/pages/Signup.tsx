@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import AnimatedBackground from '@/components/AnimatedBackground';
-import { FiArrowLeft, FiPhone, FiShield, FiCheck, FiLock, FiCreditCard } from 'react-icons/fi';
+import { FiArrowLeft, FiPhone, FiShield, FiCheck, FiLock, FiCreditCard, FiUser } from 'react-icons/fi';
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Dialog,
@@ -27,6 +27,7 @@ const BANKS = [
 
 const Signup = () => {
   const [step, setStep] = useState(1);
+  const [userName, setUserName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -96,6 +97,13 @@ const Signup = () => {
       setIsLoading(false);
       setShowSuccessDialog(true);
       
+      // Store user information in localStorage before redirecting
+      localStorage.setItem('userInfo', JSON.stringify({
+        name: userName,
+        phone: phoneNumber,
+        bank: BANKS.find(bank => bank.id === selectedBank)?.name || selectedBank
+      }));
+      
       // Redirect to dashboard after a short delay
       setTimeout(() => {
         navigate('/dashboard');
@@ -125,7 +133,7 @@ const Signup = () => {
                   {i < step ? <FiCheck /> : i}
                 </div>
                 <span className="text-xs text-gray-400">
-                  {i === 1 ? 'Phone' : 
+                  {i === 1 ? 'Profile' : 
                    i === 2 ? 'Verify' : 
                    i === 3 ? 'Consent' : 
                    i === 4 ? 'Bank' : 'Connect'}
@@ -143,9 +151,29 @@ const Signup = () => {
           {step === 1 && (
             <>
               <h2 className="text-3xl font-bold mb-2 neon-text">Connect Your Bank</h2>
-              <p className="text-gray-400 mb-6">Enter your phone number to get started</p>
+              <p className="text-gray-400 mb-6">Enter your details to get started</p>
               
               <form onSubmit={handleSendOtp} className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-400 mb-1">
+                    Your Name
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FiUser className="text-gray-500" />
+                    </div>
+                    <Input
+                      id="name"
+                      type="text"
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      required
+                      placeholder="John Doe"
+                      className="bg-gray-900 border-gray-700 focus:border-neon-purple pl-10"
+                    />
+                  </div>
+                </div>
+                
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-400 mb-1">
                     Phone Number
@@ -169,7 +197,7 @@ const Signup = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-neon-purple hover:bg-neon-purple/80"
-                  disabled={isLoading || phoneNumber.length < 10}
+                  disabled={isLoading || phoneNumber.length < 10 || !userName}
                 >
                   {isLoading ? "Sending OTP..." : "Continue"}
                 </Button>

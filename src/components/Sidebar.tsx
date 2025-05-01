@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,12 +20,33 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
 }
 
+interface UserInfo {
+  name: string;
+  phone: string;
+  bank?: string;
+}
+
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   
+  useEffect(() => {
+    const storedUserInfo = localStorage.getItem('userInfo');
+    if (storedUserInfo) {
+      try {
+        const parsedInfo = JSON.parse(storedUserInfo);
+        setUserInfo(parsedInfo);
+      } catch (error) {
+        console.error('Failed to parse user info:', error);
+      }
+    }
+  }, []);
+  
   const handleLogout = () => {
+    // Clear user data on logout
+    localStorage.removeItem('userInfo');
     toast({
       title: "Logged out",
       description: "You have been successfully logged out.",
@@ -40,6 +61,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'goals', name: 'Financial Goals', icon: FiTarget },
     { id: 'settings', name: 'Settings', icon: FiSettings },
   ];
+  
+  // Get user's initials for avatar fallback
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  };
   
   return (
     <div className={`${
@@ -90,14 +121,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
       <div className="p-4 border-t border-gray-800">
         <div className={`flex ${collapsed ? 'flex-col' : 'items-center'}`}>
           <Avatar className={`${collapsed ? 'mx-auto' : ''}`}>
-            <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-            <AvatarFallback className="bg-neon-purple text-white">JD</AvatarFallback>
+            <AvatarImage src="" alt={userInfo?.name || "User"} />
+            <AvatarFallback className="bg-neon-purple text-white">
+              {userInfo?.name ? getInitials(userInfo.name) : "U"}
+            </AvatarFallback>
           </Avatar>
           
           {!collapsed && (
             <div className="ml-3 flex-1 overflow-hidden">
-              <div className="font-medium">John Doe</div>
-              <div className="text-sm text-gray-400 truncate">john@example.com</div>
+              <div className="font-medium">{userInfo?.name || "Guest User"}</div>
+              <div className="text-sm text-gray-400 truncate">{userInfo?.phone || ""}</div>
             </div>
           )}
         </div>
