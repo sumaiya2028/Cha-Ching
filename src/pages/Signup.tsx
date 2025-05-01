@@ -106,7 +106,7 @@ const Signup = () => {
       
       // Redirect to dashboard after a short delay
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/dashboardbank');
       }, 2000);
     }, 2500);
   };
