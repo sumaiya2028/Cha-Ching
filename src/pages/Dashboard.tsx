@@ -12,9 +12,20 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ResponsiveContainer } from 'recharts';
-import { FiEdit2, FiX, FiCheck, FiTarget, FiTrendingUp, FiList, FiPieChart, FiPlus, FiFilter } from 'react-icons/fi';
+import { FiEdit2, FiX, FiCheck, FiTarget, FiTrendingUp, FiList, FiPieChart, FiPlus, FiFilter, FiSettings } from 'react-icons/fi';
+import { DollarSign, Euro, PoundSterling, IndianRupee, JapaneseYen, Currency } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Navbar from '@/components/Navbar';
 import { useIsMobile } from '@/hooks/use-mobile';
+
+// Define currency interface for type safety
+interface CurrencyInfo {
+  symbol: string;
+  code: string;
+  name: string;
+  icon: React.ReactNode;
+  rate: number; // Exchange rate relative to USD
+}
 
 // Define transaction interface for type safety
 interface Transaction {
@@ -34,6 +45,45 @@ interface Goal {
   current: number;
   color: string;
 }
+
+// Currency options
+const currencies: Record<string, CurrencyInfo> = {
+  USD: { 
+    symbol: '$', 
+    code: 'USD', 
+    name: 'US Dollar', 
+    icon: <DollarSign size={16} />, 
+    rate: 1 
+  },
+  EUR: { 
+    symbol: '€', 
+    code: 'EUR', 
+    name: 'Euro', 
+    icon: <Euro size={16} />, 
+    rate: 0.93 
+  },
+  GBP: { 
+    symbol: '£', 
+    code: 'GBP', 
+    name: 'British Pound', 
+    icon: <PoundSterling size={16} />, 
+    rate: 0.79 
+  },
+  INR: { 
+    symbol: '₹', 
+    code: 'INR', 
+    name: 'Indian Rupee', 
+    icon: <IndianRupee size={16} />, 
+    rate: 83.45 
+  },
+  JPY: { 
+    symbol: '¥', 
+    code: 'JPY', 
+    name: 'Japanese Yen', 
+    icon: <JapaneseYen size={16} />, 
+    rate: 157.23 
+  }
+};
 
 // Mock data for charts
 const expenseData = [
@@ -93,6 +143,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([...transactionHistory, ...unassignedTransactions]);
   const [timeFilter, setTimeFilter] = useState<'all' | '7days' | '1month'>('all');
+  const [currency, setCurrency] = useState<string>('USD');
   const { toast } = useToast();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -107,6 +158,24 @@ const Dashboard = () => {
   });
   
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
+  
+  // Convert amount based on selected currency
+  const convertAmount = (amount: number): number => {
+    return amount * currencies[currency].rate;
+  };
+  
+  // Format amount with currency symbol
+  const formatAmount = (amount: number): string => {
+    const convertedAmount = convertAmount(amount);
+    
+    // Format with appropriate decimal places
+    if (currency === 'JPY') {
+      // JPY typically doesn't use decimal places
+      return `${currencies[currency].symbol}${Math.round(convertedAmount)}`;
+    }
+    
+    return `${currencies[currency].symbol}${convertedAmount.toFixed(2)}`;
+  };
   
   const handleCategorizeTransaction = (id: number) => {
     if (!transactionCategory) {
@@ -137,7 +206,7 @@ const Dashboard = () => {
     
     toast({
       title: "Contribution added",
-      description: `$${amount} has been added to your goal`,
+      description: `${formatAmount(amount)} has been added to your goal`,
     });
   };
   
@@ -191,7 +260,7 @@ const Dashboard = () => {
     
     toast({
       title: "Transaction added",
-      description: `${newTransaction.type === 'income' ? 'Income' : 'Expense'} of $${amount} has been added`,
+      description: `${newTransaction.type === 'income' ? 'Income' : 'Expense'} of ${formatAmount(amount)} has been added`,
     });
   };
   
@@ -226,110 +295,142 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl md:text-3xl font-bold neon-text">Dashboard</h1>
-            <Dialog open={isTransactionDialogOpen} onOpenChange={setIsTransactionDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-neon-purple hover:bg-neon-purple/80 text-white">
-                  <FiPlus className="mr-2" />
-                  Add Transaction
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] glass neon-border">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-bold neon-text">Add New Transaction</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="transaction-description" className="text-right">
-                      Description
-                    </Label>
-                    <Input
-                      id="transaction-description"
-                      value={newTransaction.description}
-                      onChange={(e) => setNewTransaction({...newTransaction, description: e.target.value})}
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="transaction-amount" className="text-right">
-                      Amount ($)
-                    </Label>
-                    <Input
-                      id="transaction-amount"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={newTransaction.amount}
-                      onChange={(e) => setNewTransaction({...newTransaction, amount: e.target.value})}
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="transaction-date" className="text-right">
-                      Date
-                    </Label>
-                    <Input
-                      id="transaction-date"
-                      type="date"
-                      value={newTransaction.date}
-                      onChange={(e) => setNewTransaction({...newTransaction, date: e.target.value})}
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="transaction-type" className="text-right">
-                      Type
-                    </Label>
-                    <Select 
-                      value={newTransaction.type} 
-                      onValueChange={(value: 'expense' | 'income') => setNewTransaction({...newTransaction, type: value})}
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="expense">Expense</SelectItem>
-                        <SelectItem value="income">Income</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="transaction-category" className="text-right">
-                      Category
-                    </Label>
-                    <Select 
-                      value={newTransaction.category} 
-                      onValueChange={(value) => setNewTransaction({...newTransaction, category: value})}
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsTransactionDialogOpen(false)}
-                    className="border-gray-700 hover:border-white"
-                  >
-                    Cancel
+            
+            <div className="flex items-center gap-3">
+              {/* Currency Selector */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <Currency className="h-4 w-4" />
+                    <span>{currencies[currency].code}</span>
                   </Button>
-                  <Button 
-                    className="bg-neon-purple hover:bg-neon-purple/80" 
-                    onClick={handleAddTransaction}
-                  >
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2">
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm mb-2">Select Currency</h4>
+                    <div className="space-y-1">
+                      {Object.entries(currencies).map(([code, currencyInfo]) => (
+                        <Button
+                          key={code}
+                          variant={currency === code ? "default" : "ghost"}
+                          className="w-full justify-start text-sm"
+                          onClick={() => setCurrency(code)}
+                        >
+                          <span className="mr-2">{currencyInfo.icon}</span>
+                          <span>{currencyInfo.name}</span>
+                          <span className="ml-auto opacity-70">{currencyInfo.symbol}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              <Dialog open={isTransactionDialogOpen} onOpenChange={setIsTransactionDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-neon-purple hover:bg-neon-purple/80 text-white">
+                    <FiPlus className="mr-2" />
                     Add Transaction
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px] glass neon-border">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-bold neon-text">Add New Transaction</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="transaction-description" className="text-right">
+                        Description
+                      </Label>
+                      <Input
+                        id="transaction-description"
+                        value={newTransaction.description}
+                        onChange={(e) => setNewTransaction({...newTransaction, description: e.target.value})}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="transaction-amount" className="text-right">
+                        Amount ({currencies[currency].symbol})
+                      </Label>
+                      <Input
+                        id="transaction-amount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={newTransaction.amount}
+                        onChange={(e) => setNewTransaction({...newTransaction, amount: e.target.value})}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="transaction-date" className="text-right">
+                        Date
+                      </Label>
+                      <Input
+                        id="transaction-date"
+                        type="date"
+                        value={newTransaction.date}
+                        onChange={(e) => setNewTransaction({...newTransaction, date: e.target.value})}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="transaction-type" className="text-right">
+                        Type
+                      </Label>
+                      <Select 
+                        value={newTransaction.type} 
+                        onValueChange={(value: 'expense' | 'income') => setNewTransaction({...newTransaction, type: value})}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="expense">Expense</SelectItem>
+                          <SelectItem value="income">Income</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="transaction-category" className="text-right">
+                        Category
+                      </Label>
+                      <Select 
+                        value={newTransaction.category} 
+                        onValueChange={(value) => setNewTransaction({...newTransaction, category: value})}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsTransactionDialogOpen(false)}
+                      className="border-gray-700 hover:border-white"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      className="bg-neon-purple hover:bg-neon-purple/80" 
+                      onClick={handleAddTransaction}
+                    >
+                      Add Transaction
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
           {/* Tab Navigation */}
@@ -386,6 +487,7 @@ const Dashboard = () => {
                           <YAxis stroke="#999" />
                           <Tooltip 
                             contentStyle={{ backgroundColor: '#222', borderColor: '#444' }} 
+                            formatter={(value) => [formatAmount(Number(value)), '']}
                           />
                           <Legend />
                           <Line 
@@ -424,7 +526,7 @@ const Dashboard = () => {
                                 <div className="flex flex-col space-y-2">
                                   <div className="flex justify-between">
                                     <span className="font-medium">{transaction.description}</span>
-                                    <span>${transaction.amount.toFixed(2)}</span>
+                                    <span>{formatAmount(transaction.amount)}</span>
                                   </div>
                                   <div className="flex gap-2">
                                     <select 
@@ -466,7 +568,7 @@ const Dashboard = () => {
                                   </div>
                                   <div className="flex items-center gap-3">
                                     <span className={`${transaction.type === 'income' ? 'text-neon-green' : ''}`}>
-                                      {transaction.type === 'income' ? '+' : ''}${transaction.amount.toFixed(2)}
+                                      {transaction.type === 'income' ? '+' : ''}{formatAmount(transaction.amount)}
                                     </span>
                                     {!transaction.category && (
                                       <Button 
@@ -505,7 +607,7 @@ const Dashboard = () => {
                           <div key={goal.id} className="space-y-2">
                             <div className="flex justify-between">
                               <span className="font-medium">{goal.name}</span>
-                              <span>${goal.current} of ${goal.target}</span>
+                              <span>{formatAmount(goal.current)} of {formatAmount(goal.target)}</span>
                             </div>
                             <Progress 
                               value={(goal.current / goal.target) * 100} 
@@ -523,7 +625,7 @@ const Dashboard = () => {
                                   className="text-xs border-neon-purple text-neon-purple hover:bg-neon-purple/10"
                                   onClick={() => contributeToGoal(goal.id, amount)}
                                 >
-                                  +${amount}
+                                  +{formatAmount(amount)}
                                 </Button>
                               ))}
                             </div>
@@ -595,7 +697,7 @@ const Dashboard = () => {
                             </TableCell>
                             <TableCell className="text-right">
                               <span className={transaction.type === 'income' ? 'text-neon-green' : ''}>
-                                {transaction.type === 'income' ? '+' : ''}${transaction.amount.toFixed(2)}
+                                {transaction.type === 'income' ? '+' : ''}{formatAmount(transaction.amount)}
                               </span>
                             </TableCell>
                           </TableRow>
@@ -619,7 +721,7 @@ const Dashboard = () => {
                           <div className="flex justify-between items-center mb-2">
                             <span className="font-medium">{transaction.description}</span>
                             <span className={transaction.type === 'income' ? 'text-neon-green' : ''}>
-                              {transaction.type === 'income' ? '+' : ''}${transaction.amount.toFixed(2)}
+                              {transaction.type === 'income' ? '+' : ''}{formatAmount(transaction.amount)}
                             </span>
                           </div>
                           <div className="text-sm text-gray-400">
