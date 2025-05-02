@@ -183,7 +183,11 @@ const Dashboard = () => {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([...transactionHistory, ...unassignedTransactions]);
   const [timeFilter, setTimeFilter] = useState<'all' | '7days' | '1month'>('all');
   const [currency, setCurrency] = useState<string>('USD');
-  const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
+  const [budgets, setBudgets] = useState<Budget[]>(() => {
+    // Try to get budgets from localStorage first
+    const savedBudgets = localStorage.getItem('budgets');
+    return savedBudgets ? JSON.parse(savedBudgets) : initialBudgets;
+  });
   const { toast } = useToast();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -239,6 +243,9 @@ const Dashboard = () => {
     });
     
     setBudgets(updatedBudgets);
+    
+    // Save budgets to localStorage
+    localStorage.setItem('budgets', JSON.stringify(updatedBudgets));
     
     // Check for budgets nearing limits and show alerts
     updatedBudgets.forEach(budget => {
@@ -380,7 +387,10 @@ const Dashboard = () => {
       spent: spent
     };
     
-    setBudgets([...budgets, budgetToAdd]);
+    const updatedBudgets = [...budgets, budgetToAdd];
+    setBudgets(updatedBudgets);
+    // Save budgets to localStorage
+    localStorage.setItem('budgets', JSON.stringify(updatedBudgets));
   };
   
   // Filter transactions based on time period

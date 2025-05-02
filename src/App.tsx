@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Dashboardbank from "./pages/Dashboardbank";
+import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,7 +26,7 @@ const App = () => (
           <Route path="/signup" element={<Signup />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboardbank" element={<Dashboardbank />} />
-          <Route path="/goals" element={<NotFound />} />
+          <Route path="/goals" element={<Goals />} />
           <Route path="/budgets" element={<NotFound />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
