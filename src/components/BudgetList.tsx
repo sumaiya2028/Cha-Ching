@@ -98,11 +98,7 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets, currentMonth, formatAm
                     <Progress 
                       value={percentage > 100 ? 100 : percentage} 
                       className="h-2"
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.1)',
-                      }}
                       indicatorClassName={indicatorColor || ''}
-                      // Use a style attribute to set the backgroundColor dynamically
                       style={{
                         background: 'rgba(255, 255, 255, 0.1)',
                         "--indicator-color": isOverLimit 
