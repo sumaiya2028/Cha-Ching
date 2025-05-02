@@ -1,11 +1,10 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -17,6 +16,8 @@ import { DollarSign, Euro, PoundSterling, IndianRupee, JapaneseYen, Currency } f
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Navbar from '@/components/Navbar';
 import { useIsMobile } from '@/hooks/use-mobile';
+import BudgetForm from '@/components/BudgetForm';
+import BudgetList from '@/components/BudgetList';
 
 // Define currency interface for type safety
 interface CurrencyInfo {
@@ -44,6 +45,15 @@ interface Goal {
   target: number;
   current: number;
   color: string;
+}
+
+// Define budget interface
+interface Budget {
+  id: number;
+  category: string;
+  amount: number;
+  month: string;
+  spent: number;
 }
 
 // Currency options
@@ -134,6 +144,35 @@ const transactionHistory: Transaction[] = [
   { id: 13, date: '2023-06-25', description: 'Movie Tickets', amount: 24.00, category: 'Entertainment', type: 'expense' },
 ];
 
+// Mock initial budgets
+const initialBudgets: Budget[] = [
+  { 
+    id: 1, 
+    category: 'Food', 
+    amount: 500, 
+    month: new Date().toISOString().substring(0, 7), 
+    spent: 400 
+  },
+  { 
+    id: 2, 
+    category: 'Transport', 
+    amount: 200, 
+    month: new Date().toISOString().substring(0, 7), 
+    spent: 170 
+  },
+];
+
+// Category colors
+const categoryColors: Record<string, string> = {
+  'Food': '#9b87f5',
+  'Rent': '#D946EF',
+  'Shopping': '#1EAEDB',
+  'Transport': '#F97316',
+  'Entertainment': '#10B981',
+  'Bills': '#0EA5E9',
+  'Other': '#8E9196',
+};
+
 // Dashboard component
 const Dashboard = () => {
   const [editingTransaction, setEditingTransaction] = useState<number | null>(null);
@@ -144,6 +183,7 @@ const Dashboard = () => {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([...transactionHistory, ...unassignedTransactions]);
   const [timeFilter, setTimeFilter] = useState<'all' | '7days' | '1month'>('all');
   const [currency, setCurrency] = useState<string>('USD');
+  const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
   const { toast } = useToast();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -158,6 +198,8 @@ const Dashboard = () => {
   });
   
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
+  
+  const currentMonth = new Date().toISOString().substring(0, 7);
   
   // Convert amount based on selected currency
   const convertAmount = (amount: number): number => {
@@ -176,6 +218,47 @@ const Dashboard = () => {
     
     return `${currencies[currency].symbol}${convertedAmount.toFixed(2)}`;
   };
+
+  // Update budget spent amounts when transactions change
+  useEffect(() => {
+    const updatedBudgets = budgets.map(budget => {
+      // Filter transactions for this budget's category and month
+      const relevantTransactions = allTransactions.filter(transaction => {
+        const transactionMonth = transaction.date.substring(0, 7);
+        return (
+          transaction.category === budget.category && 
+          transactionMonth === budget.month && 
+          transaction.type === 'expense'
+        );
+      });
+      
+      // Calculate total spent
+      const spent = relevantTransactions.reduce((total, t) => total + t.amount, 0);
+      
+      return { ...budget, spent };
+    });
+    
+    setBudgets(updatedBudgets);
+    
+    // Check for budgets nearing limits and show alerts
+    updatedBudgets.forEach(budget => {
+      const percentSpent = (budget.spent / budget.amount) * 100;
+      
+      if (percentSpent >= 90 && percentSpent < 100) {
+        toast({
+          title: "Budget Alert",
+          description: `You've used ${percentSpent.toFixed(0)}% of your ${budget.category} budget for ${budget.month}`,
+          variant: "default",
+        });
+      } else if (percentSpent >= 100) {
+        toast({
+          title: "Budget Exceeded",
+          description: `You've exceeded your ${budget.category} budget for ${budget.month} by ${formatAmount(budget.spent - budget.amount)}`,
+          variant: "destructive",
+        });
+      }
+    });
+  }, [allTransactions]);
   
   const handleCategorizeTransaction = (id: number) => {
     if (!transactionCategory) {
@@ -187,9 +270,18 @@ const Dashboard = () => {
       return;
     }
     
-    setTransactions(transactions.map(t => 
+    // Update the transaction with the new category
+    const updatedTransactions = transactions.map(t => 
       t.id === id ? { ...t, category: transactionCategory } : t
-    ).filter(t => t.id !== id || t.category !== transactionCategory));
+    );
+    
+    // Remove the categorized transaction from the uncategorized list
+    setTransactions(updatedTransactions.filter(t => t.id !== id || t.category === ''));
+    
+    // Update the transaction in the allTransactions list
+    setAllTransactions(allTransactions.map(t => 
+      t.id === id ? { ...t, category: transactionCategory } : t
+    ));
     
     setEditingTransaction(null);
     
@@ -262,6 +354,33 @@ const Dashboard = () => {
       title: "Transaction added",
       description: `${newTransaction.type === 'income' ? 'Income' : 'Expense'} of ${formatAmount(amount)} has been added`,
     });
+  };
+  
+  // Handle adding a new budget
+  const handleAddBudget = (newBudget: Omit<Budget, "id" | "spent">) => {
+    const newId = budgets.length > 0 ? Math.max(...budgets.map(b => b.id)) + 1 : 1;
+    
+    // Calculate initial spent amount based on existing transactions
+    const relevantTransactions = allTransactions.filter(transaction => {
+      const transactionMonth = transaction.date.substring(0, 7);
+      return (
+        transaction.category === newBudget.category && 
+        transactionMonth === newBudget.month && 
+        transaction.type === 'expense'
+      );
+    });
+    
+    const spent = relevantTransactions.reduce((total, t) => total + t.amount, 0);
+    
+    const budgetToAdd: Budget = {
+      id: newId,
+      category: newBudget.category,
+      amount: newBudget.amount,
+      month: newBudget.month,
+      spent: spent
+    };
+    
+    setBudgets([...budgets, budgetToAdd]);
   };
   
   // Filter transactions based on time period
@@ -405,7 +524,11 @@ const Dashboard = () => {
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map((category) => (
-                            <SelectItem key={category} value={category}>
+                            <SelectItem 
+                              key={category} 
+                              value={category}
+                              color={categoryColors[category]}
+                            >
                               {category}
                             </SelectItem>
                           ))}
@@ -435,329 +558,477 @@ const Dashboard = () => {
 
           {/* Tab Navigation */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
-            <TabsList className="glass w-full sm:w-auto grid sm:inline-flex grid-cols-2 sm:grid-cols-none h-auto sm:h-10">
+            <TabsList className="glass w-full sm:w-auto grid sm:inline-flex grid-cols-3 sm:grid-cols-none h-auto sm:h-10">
               <TabsTrigger value="overview" className="py-2">Overview</TabsTrigger>
               <TabsTrigger value="transactions" className="py-2">Transactions</TabsTrigger>
+              <TabsTrigger value="budgets" className="py-2">Budgets</TabsTrigger>
             </TabsList>
           </Tabs>
             
-            {/* Overview Tab */}
-            {activeTab === 'overview' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                  <div className="col-span-1 glass rounded-lg p-4 neon-border">
+          {/* Overview Tab */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <div className="col-span-1 glass rounded-lg p-4 neon-border">
+                  <h3 className="text-lg md:text-xl font-medium mb-4 flex items-center">
+                    <FiPieChart className="mr-2 text-neon-purple" />
+                    Expense Breakdown
+                  </h3>
+                  <div className="h-52 sm:h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={expenseData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={isMobile ? 60 : 80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {expenseData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                
+                <div className="col-span-1 md:col-span-2 lg:col-span-2 glass rounded-lg p-4 neon-border">
+                  <h3 className="text-lg md:text-xl font-medium mb-4 flex items-center">
+                    <FiTrendingUp className="mr-2 text-neon-cyan" />
+                    Income vs. Expenses
+                  </h3>
+                  <div className="h-52 sm:h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={trendData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                        <XAxis dataKey="name" stroke="#999" />
+                        <YAxis stroke="#999" />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#222', borderColor: '#444' }} 
+                          formatter={(value) => [formatAmount(Number(value)), '']}
+                        />
+                        <Legend />
+                        <Line 
+                          type="monotone" 
+                          dataKey="income" 
+                          stroke="#10B981" 
+                          strokeWidth={2}
+                          activeDot={{ r: 8 }} 
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="expenses" 
+                          stroke="#F97316" 
+                          strokeWidth={2}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                {/* Uncategorized Transactions */}
+                <Card className="glass neon-border">
+                  <div className="p-4 md:p-6">
                     <h3 className="text-lg md:text-xl font-medium mb-4 flex items-center">
-                      <FiPieChart className="mr-2 text-neon-purple" />
-                      Expense Breakdown
+                      <FiList className="mr-2 text-neon-orange" />
+                      Transactions
                     </h3>
-                    <div className="h-52 sm:h-64">
+                    
+                    {transactions.length > 0 ? (
+                      <div className="divide-y divide-gray-700">
+                        {transactions.map((transaction) => (
+                          <div key={transaction.id} className="py-3">
+                            {editingTransaction === transaction.id ? (
+                              <div className="flex flex-col space-y-2">
+                                <div className="flex justify-between">
+                                  <span className="font-medium">{transaction.description}</span>
+                                  <span>{formatAmount(transaction.amount)}</span>
+                                </div>
+                                <div className="flex gap-2">
+                                  <select 
+                                    className="flex-1 bg-gray-900 border border-gray-700 rounded-md p-1 text-sm"
+                                    value={transactionCategory}
+                                    onChange={(e) => setTransactionCategory(e.target.value)}
+                                  >
+                                    <option value="">Select category</option>
+                                    {categories.map(category => (
+                                      <option key={category} value={category}>{category}</option>
+                                    ))}
+                                  </select>
+                                  <Button 
+                                    size="sm" 
+                                    variant="default" 
+                                    className="bg-neon-purple hover:bg-neon-purple/80"
+                                    onClick={() => handleCategorizeTransaction(transaction.id)}
+                                  >
+                                    <FiCheck size={16} />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => setEditingTransaction(null)}
+                                  >
+                                    <FiX size={16} />
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <div className="font-medium">{transaction.description}</div>
+                                  <div className="text-sm text-gray-400">
+                                    {transaction.date} 
+                                    {transaction.category && ` • ${transaction.category}`}
+                                    {transaction.type && ` • ${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}`}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className={`${transaction.type === 'income' ? 'text-neon-green' : ''}`}>
+                                    {transaction.type === 'income' ? '+' : ''}{formatAmount(transaction.amount)}
+                                  </span>
+                                  {!transaction.category && (
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost" 
+                                      className="text-gray-400 hover:text-white"
+                                      onClick={() => setEditingTransaction(transaction.id)}
+                                    >
+                                      <FiEdit2 size={16} />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-gray-400">
+                        No transactions yet
+                      </div>
+                    )}
+                  </div>
+                </Card>
+                
+                {/* Financial Goals */}
+                <Card className="glass neon-border">
+                  <div className="p-4 md:p-6">
+                    <h3 className="text-lg md:text-xl font-medium mb-4 flex items-center">
+                      <FiTarget className="mr-2 text-neon-magenta" />
+                      Financial Goals
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      {goals.map((goal) => (
+                        <div key={goal.id} className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="font-medium">{goal.name}</span>
+                            <span>{formatAmount(goal.current)} of {formatAmount(goal.target)}</span>
+                          </div>
+                          <Progress 
+                            value={(goal.current / goal.target) * 100} 
+                            className="h-2 bg-gray-800 overflow-hidden"
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.1)',
+                            }}
+                          />
+                          <div className="flex flex-wrap justify-end gap-2 pt-1">
+                            {[50, 100, 200].map((amount) => (
+                              <Button 
+                                key={amount} 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-xs border-neon-purple text-neon-purple hover:bg-neon-purple/10"
+                                onClick={() => contributeToGoal(goal.id, amount)}
+                              >
+                                +{formatAmount(amount)}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      
+                      <Button 
+                        className="w-full mt-4 bg-neon-purple hover:bg-neon-purple/80"
+                        onClick={() => navigate('/goals')}
+                      >
+                        Add New Goal
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          )}
+            
+          {/* Transactions Tab - Transaction History */}
+          {activeTab === 'transactions' && (
+            <div className="glass rounded-lg p-4 md:p-6 neon-border">
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 space-y-3 md:space-y-0">
+                <h2 className="text-xl font-bold neon-text">Transaction History</h2>
+                
+                <div className="flex items-center gap-2">
+                  <FiFilter className="text-gray-400" />
+                  <Select
+                    value={timeFilter}
+                    onValueChange={(value: 'all' | '7days' | '1month') => setTimeFilter(value)}
+                  >
+                    <SelectTrigger className="w-[130px] md:w-[180px]">
+                      <SelectValue placeholder="Filter by time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Transactions</SelectItem>
+                      <SelectItem value="7days">Last 7 Days</SelectItem>
+                      <SelectItem value="1month">Last Month</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="mt-4 overflow-auto">
+                {filteredTransactions.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-gray-700">
+                        <TableHead className="text-gray-300">Date</TableHead>
+                        <TableHead className="text-gray-300">Description</TableHead>
+                        <TableHead className="text-gray-300">Category</TableHead>
+                        <TableHead className="text-gray-300">Type</TableHead>
+                        <TableHead className="text-right text-gray-300">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .map((transaction) => (
+                        <TableRow key={transaction.id} className="border-gray-700">
+                          <TableCell className="font-medium">{transaction.date}</TableCell>
+                          <TableCell>{transaction.description}</TableCell>
+                          <TableCell>{transaction.category || 'Uncategorized'}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              transaction.type === 'income' ? 'bg-green-900/30 text-green-400' : 'bg-orange-900/30 text-orange-400'
+                            }`}>
+                              {transaction.type?.charAt(0).toUpperCase() + (transaction.type?.slice(1) || '')}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className={transaction.type === 'income' ? 'text-neon-green' : ''}>
+                              {transaction.type === 'income' ? '+' : ''}{formatAmount(transaction.amount)}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-12 text-gray-400">
+                    No transactions found for the selected time period
+                  </div>
+                )}
+              </div>
+              
+              {/* Mobile-friendly transaction list (shows on small screens only) */}
+              <div className="block md:hidden mt-4">
+                {filteredTransactions.length > 0 ? (
+                  <div className="space-y-4">
+                    {filteredTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map((transaction) => (
+                      <div key={transaction.id} className="glass p-3 rounded-lg border border-gray-800">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium">{transaction.description}</span>
+                          <span className={transaction.type === 'income' ? 'text-neon-green' : ''}>
+                            {transaction.type === 'income' ? '+' : ''}{formatAmount(transaction.amount)}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-400">
+                          <div className="flex justify-between">
+                            <span>{transaction.date}</span>
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              transaction.type === 'income' ? 'bg-green-900/30 text-green-400' : 'bg-orange-900/30 text-orange-400'
+                            }`}>
+                              {transaction.type?.charAt(0).toUpperCase() + (transaction.type?.slice(1) || '')}
+                            </span>
+                          </div>
+                          <div>{transaction.category || 'Uncategorized'}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-400">
+                    No transactions found for the selected time period
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+            
+          {/* Budgets Tab */}
+          {activeTab === 'budgets' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold neon-text">Monthly Budgets</h2>
+                <BudgetForm 
+                  onAddBudget={handleAddBudget}
+                  existingBudgets={budgets}
+                  currencies={currencies}
+                  currentCurrency={currency}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <BudgetList 
+                  budgets={budgets}
+                  currentMonth={currentMonth}
+                  formatAmount={formatAmount}
+                />
+
+                <Card className="glass neon-border p-4">
+                  <div className="flex items-center mb-4">
+                    <FiPieChart className="text-neon-purple mr-2" />
+                    <h2 className="text-lg font-semibold">Budget Overview</h2>
+                  </div>
+                  
+                  {budgets.length > 0 && budgets.some(b => b.month === currentMonth) ? (
+                    <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
-                            data={expenseData}
+                            data={budgets
+                              .filter(b => b.month === currentMonth)
+                              .map(b => ({
+                                name: b.category,
+                                value: b.spent,
+                                color: categoryColors[b.category] || '#8E9196',
+                                amount: b.amount,
+                              }))}
                             cx="50%"
                             cy="50%"
                             labelLine={false}
                             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                             outerRadius={isMobile ? 60 : 80}
-                            fill="#8884d8"
                             dataKey="value"
                           >
-                            {expenseData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
+                            {budgets
+                              .filter(b => b.month === currentMonth)
+                              .map((_, index) => (
+                                <Cell 
+                                  key={`cell-${index}`} 
+                                  fill={budgets
+                                    .filter(b => b.month === currentMonth)[index]
+                                    .category in categoryColors 
+                                      ? categoryColors[budgets.filter(b => b.month === currentMonth)[index].category] 
+                                      : '#8E9196'
+                                  } 
+                                />
+                              ))}
                           </Pie>
-                          <Tooltip />
-                          <Legend />
+                          <Tooltip 
+                            formatter={(value, name, props) => [
+                              `${formatAmount(Number(value))} / ${formatAmount(props.payload.amount)}`,
+                              props.payload.name
+                            ]}
+                          />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
-                  </div>
-                  
-                  <div className="col-span-1 md:col-span-2 lg:col-span-2 glass rounded-lg p-4 neon-border">
-                    <h3 className="text-lg md:text-xl font-medium mb-4 flex items-center">
-                      <FiTrendingUp className="mr-2 text-neon-cyan" />
-                      Income vs. Expenses
-                    </h3>
-                    <div className="h-52 sm:h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={trendData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                          <XAxis dataKey="name" stroke="#999" />
-                          <YAxis stroke="#999" />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: '#222', borderColor: '#444' }} 
-                            formatter={(value) => [formatAmount(Number(value)), '']}
-                          />
-                          <Legend />
-                          <Line 
-                            type="monotone" 
-                            dataKey="income" 
-                            stroke="#10B981" 
-                            strokeWidth={2}
-                            activeDot={{ r: 8 }} 
-                          />
-                          <Line 
-                            type="monotone" 
-                            dataKey="expenses" 
-                            stroke="#F97316" 
-                            strokeWidth={2}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-64 text-gray-400">
+                      No budget data for this month
                     </div>
-                  </div>
-                </div>
+                  )}
+                </Card>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                  {/* Uncategorized Transactions */}
-                  <Card className="glass neon-border">
-                    <div className="p-4 md:p-6">
-                      <h3 className="text-lg md:text-xl font-medium mb-4 flex items-center">
-                        <FiList className="mr-2 text-neon-orange" />
-                        Transactions
-                      </h3>
-                      
-                      {transactions.length > 0 ? (
-                        <div className="divide-y divide-gray-700">
-                          {transactions.map((transaction) => (
-                            <div key={transaction.id} className="py-3">
-                              {editingTransaction === transaction.id ? (
-                                <div className="flex flex-col space-y-2">
-                                  <div className="flex justify-between">
-                                    <span className="font-medium">{transaction.description}</span>
-                                    <span>{formatAmount(transaction.amount)}</span>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <select 
-                                      className="flex-1 bg-gray-900 border border-gray-700 rounded-md p-1 text-sm"
-                                      value={transactionCategory}
-                                      onChange={(e) => setTransactionCategory(e.target.value)}
-                                    >
-                                      <option value="">Select category</option>
-                                      {categories.map(category => (
-                                        <option key={category} value={category}>{category}</option>
-                                      ))}
-                                    </select>
-                                    <Button 
-                                      size="sm" 
-                                      variant="default" 
-                                      className="bg-neon-purple hover:bg-neon-purple/80"
-                                      onClick={() => handleCategorizeTransaction(transaction.id)}
-                                    >
-                                      <FiCheck size={16} />
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => setEditingTransaction(null)}
-                                    >
-                                      <FiX size={16} />
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <div className="font-medium">{transaction.description}</div>
-                                    <div className="text-sm text-gray-400">
-                                      {transaction.date} 
-                                      {transaction.category && ` • ${transaction.category}`}
-                                      {transaction.type && ` • ${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}`}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <span className={`${transaction.type === 'income' ? 'text-neon-green' : ''}`}>
-                                      {transaction.type === 'income' ? '+' : ''}{formatAmount(transaction.amount)}
-                                    </span>
-                                    {!transaction.category && (
-                                      <Button 
-                                        size="sm" 
-                                        variant="ghost" 
-                                        className="text-gray-400 hover:text-white"
-                                        onClick={() => setEditingTransaction(transaction.id)}
-                                      >
-                                        <FiEdit2 size={16} />
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-6 text-gray-400">
-                          No transactions yet
-                        </div>
-                      )}
-                    </div>
-                  </Card>
+                <Card className="glass neon-border p-4 md:col-span-2">
+                  <div className="flex items-center mb-4">
+                    <FiTrendingUp className="text-neon-cyan mr-2" />
+                    <h2 className="text-lg font-semibold">Spending by Category</h2>
+                  </div>
                   
-                  {/* Financial Goals */}
-                  <Card className="glass neon-border">
-                    <div className="p-4 md:p-6">
-                      <h3 className="text-lg md:text-xl font-medium mb-4 flex items-center">
-                        <FiTarget className="mr-2 text-neon-magenta" />
-                        Financial Goals
-                      </h3>
+                  <div className="space-y-4">
+                    {categories.map(category => {
+                      // Get transactions for this category
+                      const categoryTransactions = allTransactions.filter(
+                        t => t.category === category && 
+                        t.type === 'expense' &&
+                        t.date.substring(0, 7) === currentMonth
+                      );
                       
-                      <div className="space-y-4">
-                        {goals.map((goal) => (
-                          <div key={goal.id} className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="font-medium">{goal.name}</span>
-                              <span>{formatAmount(goal.current)} of {formatAmount(goal.target)}</span>
+                      const totalSpent = categoryTransactions.reduce((sum, t) => sum + t.amount, 0);
+                      
+                      // Skip categories with no transactions
+                      if (categoryTransactions.length === 0) return null;
+                      
+                      // Find budget for this category if it exists
+                      const budget = budgets.find(
+                        b => b.category === category && b.month === currentMonth
+                      );
+                      
+                      const percentage = budget ? (totalSpent / budget.amount) * 100 : 0;
+                      const color = categoryColors[category] || '#8E9196';
+                      
+                      return (
+                        <div key={category} className="space-y-2">
+                          <div className="flex justify-between">
+                            <div className="flex items-center">
+                              <span 
+                                className="h-3 w-3 rounded-full mr-2" 
+                                style={{ backgroundColor: color }}
+                              />
+                              <span className="font-medium">{category}</span>
                             </div>
+                            <span>
+                              {formatAmount(totalSpent)}
+                              {budget && ` / ${formatAmount(budget.amount)}`}
+                            </span>
+                          </div>
+                          
+                          {budget && (
                             <Progress 
-                              value={(goal.current / goal.target) * 100} 
-                              className="h-2 bg-gray-800 overflow-hidden"
+                              value={percentage > 100 ? 100 : percentage} 
+                              className="h-2"
                               style={{
                                 background: 'rgba(255, 255, 255, 0.1)',
                               }}
+                              indicator={{
+                                style: {
+                                  backgroundColor: percentage > 100 
+                                    ? '#ef4444' 
+                                    : percentage > 80 
+                                      ? '#f97316' 
+                                      : color
+                                }
+                              }}
                             />
-                            <div className="flex flex-wrap justify-end gap-2 pt-1">
-                              {[50, 100, 200].map((amount) => (
-                                <Button 
-                                  key={amount} 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="text-xs border-neon-purple text-neon-purple hover:bg-neon-purple/10"
-                                  onClick={() => contributeToGoal(goal.id, amount)}
-                                >
-                                  +{formatAmount(amount)}
-                                </Button>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                        
-                        <Button 
-                          className="w-full mt-4 bg-neon-purple hover:bg-neon-purple/80"
-                          onClick={() => navigate('/goals')}
-                        >
-                          Add New Goal
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                </div>
-              </div>
-            )}
-            
-            {/* Transactions Tab - Transaction History */}
-            {activeTab === 'transactions' && (
-              <div className="glass rounded-lg p-4 md:p-6 neon-border">
-                <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 space-y-3 md:space-y-0">
-                  <h2 className="text-xl font-bold neon-text">Transaction History</h2>
-                  
-                  <div className="flex items-center gap-2">
-                    <FiFilter className="text-gray-400" />
-                    <Select
-                      value={timeFilter}
-                      onValueChange={(value: 'all' | '7days' | '1month') => setTimeFilter(value)}
-                    >
-                      <SelectTrigger className="w-[130px] md:w-[180px]">
-                        <SelectValue placeholder="Filter by time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Transactions</SelectItem>
-                        <SelectItem value="7days">Last 7 Days</SelectItem>
-                        <SelectItem value="1month">Last Month</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="mt-4 overflow-auto">
-                  {filteredTransactions.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-gray-700">
-                          <TableHead className="text-gray-300">Date</TableHead>
-                          <TableHead className="text-gray-300">Description</TableHead>
-                          <TableHead className="text-gray-300">Category</TableHead>
-                          <TableHead className="text-gray-300">Type</TableHead>
-                          <TableHead className="text-right text-gray-300">Amount</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                          .map((transaction) => (
-                          <TableRow key={transaction.id} className="border-gray-700">
-                            <TableCell className="font-medium">{transaction.date}</TableCell>
-                            <TableCell>{transaction.description}</TableCell>
-                            <TableCell>{transaction.category || 'Uncategorized'}</TableCell>
-                            <TableCell>
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                transaction.type === 'income' ? 'bg-green-900/30 text-green-400' : 'bg-orange-900/30 text-orange-400'
-                              }`}>
-                                {transaction.type?.charAt(0).toUpperCase() + (transaction.type?.slice(1) || '')}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <span className={transaction.type === 'income' ? 'text-neon-green' : ''}>
-                                {transaction.type === 'income' ? '+' : ''}{formatAmount(transaction.amount)}
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="text-center py-12 text-gray-400">
-                      No transactions found for the selected time period
-                    </div>
-                  )}
-                </div>
-                
-                {/* Mobile-friendly transaction list (shows on small screens only) */}
-                <div className="block md:hidden mt-4">
-                  {filteredTransactions.length > 0 ? (
-                    <div className="space-y-4">
-                      {filteredTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .map((transaction) => (
-                        <div key={transaction.id} className="glass p-3 rounded-lg border border-gray-800">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="font-medium">{transaction.description}</span>
-                            <span className={transaction.type === 'income' ? 'text-neon-green' : ''}>
-                              {transaction.type === 'income' ? '+' : ''}{formatAmount(transaction.amount)}
-                            </span>
-                          </div>
-                          <div className="text-sm text-gray-400">
-                            <div className="flex justify-between">
-                              <span>{transaction.date}</span>
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                transaction.type === 'income' ? 'bg-green-900/30 text-green-400' : 'bg-orange-900/30 text-orange-400'
-                              }`}>
-                                {transaction.type?.charAt(0).toUpperCase() + (transaction.type?.slice(1) || '')}
-                              </span>
-                            </div>
-                            <div>{transaction.category || 'Uncategorized'}</div>
-                          </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-gray-400">
-                      No transactions found for the selected time period
-                    </div>
-                  )}
-                </div>
+                      );
+                    }).filter(Boolean)}
+                  </div>
+                </Card>
               </div>
-            )}
+            </div>
+          )}
             
-            {/* Additional tab content can go here */}
-            {activeTab !== 'overview' && activeTab !== 'transactions' && (
-              <div className="glass rounded-lg p-6 neon-border">
-                <h2 className="text-2xl font-bold mb-4 neon-text">
-                  {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-                </h2>
-                <p className="text-gray-400">
-                  This section is under development. Coming soon!
-                </p>
-              </div>
-            )}
+          {/* Other tabs */}
+          {activeTab !== 'overview' && activeTab !== 'transactions' && activeTab !== 'budgets' && (
+            <div className="glass rounded-lg p-6 neon-border">
+              <h2 className="text-2xl font-bold mb-4 neon-text">
+                {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+              </h2>
+              <p className="text-gray-400">
+                This section is under development. Coming soon!
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

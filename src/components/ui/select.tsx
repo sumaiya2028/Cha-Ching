@@ -114,8 +114,9 @@ const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item> & {
     icon?: React.ReactNode;
+    color?: string;
   }
->(({ className, children, icon, ...props }, ref) => (
+>(({ className, children, icon, color, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
@@ -130,6 +131,12 @@ const SelectItem = React.forwardRef<
       </SelectPrimitive.ItemIndicator>
     </span>
 
+    {color && (
+      <span 
+        className="mr-2 h-3 w-3 rounded-full" 
+        style={{ backgroundColor: color }}
+      />
+    )}
     {icon && <span className="mr-2">{icon}</span>}
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
   </SelectPrimitive.Item>
