@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,25 @@ import { PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { FiEdit2, FiX, FiCheck, FiTarget, FiTrendingUp, FiList, FiPieChart, FiPlus } from 'react-icons/fi';
 import Navbar from '@/components/Navbar';
 import { useIsMobile } from '@/hooks/use-mobile';
+
+// Define transaction interface for type safety
+interface Transaction {
+  id: number;
+  date: string;
+  description: string;
+  amount: number;
+  category?: string;
+  type?: 'expense' | 'income';
+}
+
+// Define goal interface for type safety
+interface Goal {
+  id: number;
+  name: string;
+  target: number;
+  current: number;
+  color: string;
+}
 
 // Mock data for charts
 const expenseData = [
@@ -32,13 +50,14 @@ const trendData = [
   { name: 'Jun', expenses: 3800, income: 5200 },
 ];
 
-const unassignedTransactions = [
-  { id: 1, date: '2023-05-01', description: 'Merchant 1', amount: 45.99 },
-  { id: 2, date: '2023-05-02', description: 'Merchant 2', amount: 122.00 },
-  { id: 3, date: '2023-05-03', description: 'Merchant 3', amount: 12.49 },
+// Updated unassigned transactions to include category and type properties
+const unassignedTransactions: Transaction[] = [
+  { id: 1, date: '2023-05-01', description: 'Merchant 1', amount: 45.99, category: '', type: 'expense' },
+  { id: 2, date: '2023-05-02', description: 'Merchant 2', amount: 122.00, category: '', type: 'expense' },
+  { id: 3, date: '2023-05-03', description: 'Merchant 3', amount: 12.49, category: '', type: 'expense' },
 ];
 
-const financialGoals = [
+const financialGoals: Goal[] = [
   { id: 1, name: 'Emergency Fund', target: 5000, current: 2500, color: '#9b87f5' },
   { id: 2, name: 'Vacation', target: 2000, current: 800, color: '#D946EF' },
   { id: 3, name: 'New Laptop', target: 1500, current: 1200, color: '#1EAEDB' },
@@ -50,10 +69,10 @@ const categories = [
 
 // Dashboard component
 const Dashboard = () => {
-  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [editingTransaction, setEditingTransaction] = useState<number | null>(null);
   const [transactionCategory, setTransactionCategory] = useState('');
-  const [transactions, setTransactions] = useState(unassignedTransactions);
-  const [goals, setGoals] = useState(financialGoals);
+  const [transactions, setTransactions] = useState<Transaction[]>(unassignedTransactions);
+  const [goals, setGoals] = useState<Goal[]>(financialGoals);
   const [activeTab, setActiveTab] = useState('overview');
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -64,13 +83,13 @@ const Dashboard = () => {
     description: '',
     amount: '',
     category: '',
-    type: 'expense',
+    type: 'expense' as 'expense' | 'income',
     date: new Date().toISOString().split('T')[0]
   });
   
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   
-  const handleCategorizeTransaction = (id) => {
+  const handleCategorizeTransaction = (id: number) => {
     if (!transactionCategory) {
       toast({
         title: "Error",
@@ -80,7 +99,10 @@ const Dashboard = () => {
       return;
     }
     
-    setTransactions(transactions.filter(t => t.id !== id));
+    setTransactions(transactions.map(t => 
+      t.id === id ? { ...t, category: transactionCategory } : t
+    ).filter(t => t.id !== id || t.category !== transactionCategory));
+    
     setEditingTransaction(null);
     
     toast({
@@ -89,7 +111,7 @@ const Dashboard = () => {
     });
   };
   
-  const contributeToGoal = (id, amount) => {
+  const contributeToGoal = (id: number, amount: number) => {
     setGoals(goals.map(goal => 
       goal.id === id ? { ...goal, current: Math.min(goal.current + amount, goal.target) } : goal
     ));
@@ -122,7 +144,7 @@ const Dashboard = () => {
     
     const newId = transactions.length > 0 ? Math.max(...transactions.map(t => t.id)) + 1 : 1;
     
-    const transactionToAdd = {
+    const transactionToAdd: Transaction = {
       id: newId,
       date: newTransaction.date,
       description: newTransaction.description,
@@ -213,7 +235,7 @@ const Dashboard = () => {
                     </Label>
                     <Select 
                       value={newTransaction.type} 
-                      onValueChange={(value) => setNewTransaction({...newTransaction, type: value})}
+                      onValueChange={(value: 'expense' | 'income') => setNewTransaction({...newTransaction, type: value})}
                     >
                       <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="Select type" />
