@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ResponsiveContainer } from 'recharts';
 import { FiEdit2, FiX, FiCheck, FiTarget, FiTrendingUp, FiList, FiPieChart } from 'react-icons/fi';
-import Sidebar from '@/components/Sidebar';
-import { Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
+import Navbar from '@/components/Navbar';
 
 // Mock data for charts
 const expenseData = [
@@ -84,41 +83,7 @@ const Dashboard = () => {
   
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
-    {/* Mobile Top Bar */}
-    <div className="md:hidden flex justify-between items-center p-4">
-      <button
-        onClick={() => setShowSidebar(!showSidebar)}
-        className="text-white"
-      >
-        {showSidebar ? <X size={28} /> : <Menu size={28} />}
-      </button>
-      <h1 className="text-xl font-bold text-white">Cha-Ching</h1>
-    </div>
-
-    {/* Mobile Sidebar */}
-    {showSidebar && (
-      <div className="w-full bg-sidebar md:hidden">
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      </div>
-    )}
-
-    {/* Desktop Sidebar */}
-    <div
-      className={`hidden md:flex flex-col bg-sidebar transition-all duration-300 ${
-        isSidebarCollapsed ? "w-16" : "w-56"
-      }`}
-    >
-      <div className="flex justify-end p-2">
-        <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
-          {isSidebarCollapsed ? <ChevronRight /> : <ChevronLeft />}
-        </button>
-      </div>
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        collapsed={isSidebarCollapsed}
-      />
-    </div>
+    <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
     {/* Main Content */}
     <div className="flex-1 p-6 overflow-y-auto transition-all duration-300">
