@@ -998,15 +998,13 @@ const Dashboard = () => {
                               style={{
                                 background: 'rgba(255, 255, 255, 0.1)',
                               }}
-                              indicator={{
-                                style: {
-                                  backgroundColor: percentage > 100 
-                                    ? '#ef4444' 
-                                    : percentage > 80 
-                                      ? '#f97316' 
-                                      : color
-                                }
-                              }}
+                              indicatorClassName={
+                                percentage > 100 
+                                  ? 'bg-red-500' 
+                                  : percentage > 80 
+                                    ? 'bg-orange-500' 
+                                    : ''
+                              }
                             />
                           )}
                         </div>

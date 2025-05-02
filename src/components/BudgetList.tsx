@@ -73,6 +73,13 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets, currentMonth, formatAm
                 const isOverLimit = percentage > 100;
                 const color = categoryColors[budget.category] || '#8E9196';
                 
+                // Determine the indicator color based on percentage
+                const indicatorColor = isOverLimit 
+                  ? 'bg-red-500'
+                  : isNearLimit 
+                    ? 'bg-orange-500' 
+                    : '';
+                
                 return (
                   <div key={budget.id} className="space-y-2">
                     <div className="flex justify-between">
@@ -94,16 +101,16 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets, currentMonth, formatAm
                       style={{
                         background: 'rgba(255, 255, 255, 0.1)',
                       }}
-                      // Apply color based on percentage
-                      indicator={{
-                        style: {
-                          backgroundColor: isOverLimit 
-                            ? '#ef4444' 
-                            : isNearLimit 
-                              ? '#f97316' 
-                              : color
-                        }
-                      }}
+                      indicatorClassName={indicatorColor || ''}
+                      // Use a style attribute to set the backgroundColor dynamically
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        "--indicator-color": isOverLimit 
+                          ? '#ef4444' 
+                          : isNearLimit 
+                            ? '#f97316' 
+                            : color
+                      } as React.CSSProperties}
                     />
                     
                     {isNearLimit && (
