@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -8,8 +9,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ResponsiveContainer } from 'recharts';
-import { FiEdit2, FiX, FiCheck, FiTarget, FiTrendingUp, FiList, FiPieChart, FiPlus } from 'react-icons/fi';
+import { FiEdit2, FiX, FiCheck, FiTarget, FiTrendingUp, FiList, FiPieChart, FiPlus, FiFilter } from 'react-icons/fi';
 import Navbar from '@/components/Navbar';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -67,6 +70,20 @@ const categories = [
   'Food', 'Rent', 'Shopping', 'Transport', 'Entertainment', 'Bills', 'Other'
 ];
 
+// Sample transaction history
+const transactionHistory: Transaction[] = [
+  { id: 4, date: '2023-06-01', description: 'Grocery Store', amount: 78.45, category: 'Food', type: 'expense' },
+  { id: 5, date: '2023-06-02', description: 'Monthly Rent', amount: 950.00, category: 'Rent', type: 'expense' },
+  { id: 6, date: '2023-06-03', description: 'Salary Deposit', amount: 3200.00, category: 'Income', type: 'income' },
+  { id: 7, date: '2023-06-04', description: 'Coffee Shop', amount: 5.75, category: 'Food', type: 'expense' },
+  { id: 8, date: '2023-06-05', description: 'Gas Station', amount: 45.30, category: 'Transport', type: 'expense' },
+  { id: 9, date: '2023-06-10', description: 'Online Shopping', amount: 124.99, category: 'Shopping', type: 'expense' },
+  { id: 10, date: '2023-06-15', description: 'Side Gig Payment', amount: 350.00, category: 'Income', type: 'income' },
+  { id: 11, date: '2023-06-18', description: 'Electric Bill', amount: 89.50, category: 'Bills', type: 'expense' },
+  { id: 12, date: '2023-06-20', description: 'Restaurant Dinner', amount: 67.80, category: 'Food', type: 'expense' },
+  { id: 13, date: '2023-06-25', description: 'Movie Tickets', amount: 24.00, category: 'Entertainment', type: 'expense' },
+];
+
 // Dashboard component
 const Dashboard = () => {
   const [editingTransaction, setEditingTransaction] = useState<number | null>(null);
@@ -74,6 +91,8 @@ const Dashboard = () => {
   const [transactions, setTransactions] = useState<Transaction[]>(unassignedTransactions);
   const [goals, setGoals] = useState<Goal[]>(financialGoals);
   const [activeTab, setActiveTab] = useState('overview');
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([...transactionHistory, ...unassignedTransactions]);
+  const [timeFilter, setTimeFilter] = useState<'all' | '7days' | '1month'>('all');
   const { toast } = useToast();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -142,7 +161,7 @@ const Dashboard = () => {
       return;
     }
     
-    const newId = transactions.length > 0 ? Math.max(...transactions.map(t => t.id)) + 1 : 1;
+    const newId = allTransactions.length > 0 ? Math.max(...allTransactions.map(t => t.id)) + 1 : 1;
     
     const transactionToAdd: Transaction = {
       id: newId,
@@ -153,7 +172,12 @@ const Dashboard = () => {
       type: newTransaction.type
     };
     
-    setTransactions([...transactions, transactionToAdd]);
+    setAllTransactions([...allTransactions, transactionToAdd]);
+    
+    // Also add to regular transactions if it's uncategorized
+    if (!newTransaction.category) {
+      setTransactions([...transactions, transactionToAdd]);
+    }
     
     setNewTransaction({
       description: '',
@@ -170,6 +194,28 @@ const Dashboard = () => {
       description: `${newTransaction.type === 'income' ? 'Income' : 'Expense'} of $${amount} has been added`,
     });
   };
+  
+  // Filter transactions based on time period
+  const getFilteredTransactions = () => {
+    if (timeFilter === 'all') return allTransactions;
+    
+    const today = new Date();
+    const cutoffDate = new Date();
+    
+    if (timeFilter === '7days') {
+      cutoffDate.setDate(today.getDate() - 7);
+    } else if (timeFilter === '1month') {
+      cutoffDate.setMonth(today.getMonth() - 1);
+    }
+    
+    return allTransactions.filter(transaction => {
+      const transactionDate = new Date(transaction.date);
+      return transactionDate >= cutoffDate;
+    });
+  };
+  
+  // Get filtered transactions
+  const filteredTransactions = getFilteredTransactions();
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -285,7 +331,16 @@ const Dashboard = () => {
               </DialogContent>
             </Dialog>
           </div>
-            {/* Overview Section */}
+
+          {/* Tab Navigation */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
+            <TabsList className="glass w-full sm:w-auto grid sm:inline-flex grid-cols-2 sm:grid-cols-none h-auto sm:h-10">
+              <TabsTrigger value="overview" className="py-2">Overview</TabsTrigger>
+              <TabsTrigger value="transactions" className="py-2">Transactions</TabsTrigger>
+            </TabsList>
+          </Tabs>
+            
+            {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -488,8 +543,110 @@ const Dashboard = () => {
               </div>
             )}
             
+            {/* Transactions Tab - Transaction History */}
+            {activeTab === 'transactions' && (
+              <div className="glass rounded-lg p-4 md:p-6 neon-border">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 space-y-3 md:space-y-0">
+                  <h2 className="text-xl font-bold neon-text">Transaction History</h2>
+                  
+                  <div className="flex items-center gap-2">
+                    <FiFilter className="text-gray-400" />
+                    <Select
+                      value={timeFilter}
+                      onValueChange={(value: 'all' | '7days' | '1month') => setTimeFilter(value)}
+                    >
+                      <SelectTrigger className="w-[130px] md:w-[180px]">
+                        <SelectValue placeholder="Filter by time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Transactions</SelectItem>
+                        <SelectItem value="7days">Last 7 Days</SelectItem>
+                        <SelectItem value="1month">Last Month</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="mt-4 overflow-auto">
+                  {filteredTransactions.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-700">
+                          <TableHead className="text-gray-300">Date</TableHead>
+                          <TableHead className="text-gray-300">Description</TableHead>
+                          <TableHead className="text-gray-300">Category</TableHead>
+                          <TableHead className="text-gray-300">Type</TableHead>
+                          <TableHead className="text-right text-gray-300">Amount</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .map((transaction) => (
+                          <TableRow key={transaction.id} className="border-gray-700">
+                            <TableCell className="font-medium">{transaction.date}</TableCell>
+                            <TableCell>{transaction.description}</TableCell>
+                            <TableCell>{transaction.category || 'Uncategorized'}</TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                transaction.type === 'income' ? 'bg-green-900/30 text-green-400' : 'bg-orange-900/30 text-orange-400'
+                              }`}>
+                                {transaction.type?.charAt(0).toUpperCase() + (transaction.type?.slice(1) || '')}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={transaction.type === 'income' ? 'text-neon-green' : ''}>
+                                {transaction.type === 'income' ? '+' : ''}${transaction.amount.toFixed(2)}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-12 text-gray-400">
+                      No transactions found for the selected time period
+                    </div>
+                  )}
+                </div>
+                
+                {/* Mobile-friendly transaction list (shows on small screens only) */}
+                <div className="block md:hidden mt-4">
+                  {filteredTransactions.length > 0 ? (
+                    <div className="space-y-4">
+                      {filteredTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .map((transaction) => (
+                        <div key={transaction.id} className="glass p-3 rounded-lg border border-gray-800">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-medium">{transaction.description}</span>
+                            <span className={transaction.type === 'income' ? 'text-neon-green' : ''}>
+                              {transaction.type === 'income' ? '+' : ''}${transaction.amount.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            <div className="flex justify-between">
+                              <span>{transaction.date}</span>
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                transaction.type === 'income' ? 'bg-green-900/30 text-green-400' : 'bg-orange-900/30 text-orange-400'
+                              }`}>
+                                {transaction.type?.charAt(0).toUpperCase() + (transaction.type?.slice(1) || '')}
+                              </span>
+                            </div>
+                            <div>{transaction.category || 'Uncategorized'}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-gray-400">
+                      No transactions found for the selected time period
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
             {/* Additional tab content can go here */}
-            {activeTab !== 'overview' && (
+            {activeTab !== 'overview' && activeTab !== 'transactions' && (
               <div className="glass rounded-lg p-6 neon-border">
                 <h2 className="text-2xl font-bold mb-4 neon-text">
                   {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
