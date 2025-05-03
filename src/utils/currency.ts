@@ -29,11 +29,11 @@ export const formatAmount = (
   return `${currencySymbol}${convertedAmount.toFixed(2)}`;
 };
 
-// Filter transactions based on time period
-export const filterTransactionsByTimePeriod = (
-  transactions: Array<{date: string, [key: string]: any}>, 
+// Updated to ensure returned type matches Transaction interface
+export const filterTransactionsByTimePeriod = <T extends { date: string; id: number; description: string; amount: number }>(
+  transactions: T[], 
   timeFilter: 'all' | '7days' | '1month'
-): Array<{date: string, [key: string]: any}> => {
+): T[] => {
   if (timeFilter === 'all') return transactions;
   
   const today = new Date();
