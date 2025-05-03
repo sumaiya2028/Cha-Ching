@@ -48,8 +48,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [showSidebar, setShowSidebar] = useState(false); // mobile
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // desktop
+
   
   const handleCategorizeTransaction = (id: number) => {
     if (!transactionCategory) {
@@ -82,13 +81,14 @@ const Dashboard = () => {
   };
   
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background">
-    <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="min-h-screen flex flex-col bg-background">
+         <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+   
+         {/* Main Content */}
+         <div className="flex justify-center mb-6">
+  <h1 className="text-2xl md:text-3xl font-bold neon-text">Dashboard</h1>
+</div>
 
-    {/* Main Content */}
-    <div className="flex-1 p-6 overflow-y-auto transition-all duration-300">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 neon-text">Dashboard</h1>
           {/* Overview Section */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
@@ -296,10 +296,10 @@ const Dashboard = () => {
                 This section is under development. Coming soon!
               </p>
             </div>
+           
           )}
         </div>
-      </div>
-    </div>
+      
   );
 };
 
