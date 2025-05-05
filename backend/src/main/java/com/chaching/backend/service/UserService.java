@@ -15,7 +15,7 @@ public class UserService {
     private UserRepository userRepository;
 
     @Autowired
-    private PasswordEncoder passwordEncoder;  // Use PasswordEncoder here
+    private PasswordEncoder passwordEncoder;
 
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
@@ -29,14 +29,23 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User findOrCreateUser(String email, String fullName) {
+    public User findOrCreateUser(String email, String fullName, String profilePicture) {
         return userRepository.findByEmail(email)
+                .map(existingUser -> {
+                    // Update profile picture if missing
+                    if (existingUser.getProfilePicture() == null && profilePicture != null) {
+                        existingUser.setProfilePicture(profilePicture);
+                        return userRepository.save(existingUser); // persist the change
+                    }
+                    return existingUser;
+                })
                 .orElseGet(() -> {
                     User newUser = new User();
                     newUser.setEmail(email);
                     newUser.setFullName(fullName);
-                    newUser.setProvider("google"); // indicate it's an OAuth user
-                    newUser.setPassword(null); // no password needed for Google login
+                    newUser.setProfilePicture(profilePicture);
+                    newUser.setProvider("google");
+                    newUser.setPassword(null); // no password for Google login
                     return userRepository.save(newUser);
                 });
     }
@@ -44,7 +53,7 @@ public class UserService {
     public User createUser(String email, String password, String fullName) {
         User user = new User();
         user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));  // Use the injected PasswordEncoder
+        user.setPassword(passwordEncoder.encode(password));
         user.setFullName(fullName);
         user.setProvider("local");
         return userRepository.save(user);

@@ -1,66 +1,21 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
-import { 
-  FiHome, 
-  FiPieChart, 
-  FiBarChart2, 
-  FiTarget, 
-  FiSettings, 
-  FiLogOut, 
-  FiMenu, 
-  FiX,
-  FiUser 
-} from 'react-icons/fi';
+import { FiHome, FiPieChart, FiBarChart2, FiTarget, FiSettings, FiLogOut, FiMenu, FiX, FiUser } from 'react-icons/fi';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from "@/hooks/useAuth";
+
+
 
 const Navbar = ({ activeTab, setActiveTab }) => {
-  const [userInfo, setUserInfo] = useState(null);
+  const { user, setUser } = useAuth(); // Use the user info from AuthContext
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
-  useEffect(() => {
-    const storedUserInfo = localStorage.getItem('userInfo');
-    if (storedUserInfo) {
-      try {
-        const parsedInfo = JSON.parse(storedUserInfo);
-        setUserInfo(parsedInfo);
-      } catch (error) {
-        console.error('Failed to parse user info:', error);
-      }
-    }
-  }, []);
-  
-  // Close mobile menu when screen size changes to desktop
-  useEffect(() => {
-    if (!isMobile && isMobileMenuOpen) {
-      setIsMobileMenuOpen(false);
-    }
-  }, [isMobile, isMobileMenuOpen]);
-  
-  const handleLogout = () => {
-    // Clear user data on logout
-    localStorage.removeItem('userInfo');
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
-    navigate('/');
-  };
-  
-  const menu = [
-    { id: 'overview', name: 'Overview', icon: FiHome },
-    { id: 'transactions', name: 'Transactions', icon: FiPieChart },
-    { id: 'budgets', name: 'Budgets', icon: FiBarChart2 },
-    { id: 'goals', name: 'Financial Goals', icon: FiTarget },
-    { id: 'settings', name: 'Settings', icon: FiSettings },
-  ];
-  
+
   // Get user's initials for avatar fallback
   const getInitials = (name) => {
     return name
@@ -70,7 +25,26 @@ const Navbar = ({ activeTab, setActiveTab }) => {
       .join('')
       .toUpperCase() || 'U';
   };
-  
+
+  const handleLogout = () => {
+    // Clear user data on logout
+    localStorage.removeItem('userInfo');
+    setUser(null); // Clear user info from context
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate('/');
+  };
+
+  const menu = [
+    { id: 'overview', name: 'Overview', icon: FiHome },
+    { id: 'transactions', name: 'Transactions', icon: FiPieChart },
+    { id: 'budgets', name: 'Budgets', icon: FiBarChart2 },
+    { id: 'goals', name: 'Financial Goals', icon: FiTarget },
+    { id: 'settings', name: 'Settings', icon: FiSettings },
+  ];
+
   return (
     <div className="sticky top-0 z-50 bg-gray-900 h-16 px-4 flex items-center justify-between border-b border-gray-800">
       {/* Logo */}
@@ -80,7 +54,7 @@ const Navbar = ({ activeTab, setActiveTab }) => {
         </div>
         <span className="ml-2 font-bold text-lg text-white">Cha-Ching</span>
       </div>
-      
+
       {/* Desktop Navigation Links */}
       <div className="hidden md:flex items-center space-x-2">
         {menu.map((item) => (
@@ -95,17 +69,17 @@ const Navbar = ({ activeTab, setActiveTab }) => {
           </Button>
         ))}
       </div>
-      
+
       {/* User profile (visible on Desktop) */}
       <div className="hidden md:flex items-center">
         <Avatar className="h-8 w-8">
-          <AvatarImage src="" alt={userInfo?.name || "User"} />
+          <AvatarImage src={user?.picture || ""} alt={user?.name || "User"} />
           <AvatarFallback className="bg-neon-purple text-white text-sm">
-            {userInfo?.name ? getInitials(userInfo.name) : <FiUser />}
+            {user?.name ? getInitials(user.name) : <FiUser />}
           </AvatarFallback>
         </Avatar>
         <div className="ml-3 max-w-[100px] lg:max-w-none">
-          <div className="font-medium text-white text-sm truncate">{userInfo?.name || "Guest User"}</div>
+          <div className="font-medium text-white text-sm truncate">{user?.name || "Guest User"}</div>
         </div>
         <Button
           variant="ghost"
@@ -116,7 +90,7 @@ const Navbar = ({ activeTab, setActiveTab }) => {
           <FiLogOut size={18} />
         </Button>
       </div>
-      
+
       {/* Hamburger Menu Button */}
       <div className="md:hidden flex items-center">
         <Button
@@ -128,7 +102,7 @@ const Navbar = ({ activeTab, setActiveTab }) => {
           {isMobileMenuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
         </Button>
       </div>
-      
+
       {/* Mobile Menu (Hamburger menu) */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm md:hidden" onClick={() => setIsMobileMenuOpen(false)}>
@@ -158,13 +132,13 @@ const Navbar = ({ activeTab, setActiveTab }) => {
             <div className="mt-6 px-4 py-4 border-t border-gray-800">
               <div className="flex items-center">
                 <Avatar>
-                  <AvatarImage src="" alt={userInfo?.name || "User"} />
+                  <AvatarImage src={user?.picture || ""} alt={user?.name || "User"} />
                   <AvatarFallback className="bg-neon-purple text-white">
-                    {userInfo?.name ? getInitials(userInfo.name) : <FiUser />}
+                    {user?.name ? getInitials(user.name) : <FiUser />}
                   </AvatarFallback>
                 </Avatar>
                 <div className="ml-3">
-                  <div className="font-medium text-white">{userInfo?.name || "Guest User"}</div>
+                  <div className="font-medium text-white">{user?.name || "Guest User"}</div>
                 </div>
               </div>
               <Button

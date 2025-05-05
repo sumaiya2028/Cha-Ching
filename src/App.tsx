@@ -10,32 +10,31 @@ import Dashboard from "./pages/Dashboard";
 import Dashboardbank from "./pages/Dashboardbank";
 import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
-import AuthCallback from "./pages/AuthCallback";  // Add AuthCallback for handling OAuth2 response
+import AuthCallback from "./pages/AuthCallback";
+import { AuthProvider } from "@/context/AuthProvider";
+
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <Routes>
-          {/* Your existing routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboardbank" element={<Dashboardbank />} />
-          <Route path="/goals" element={<Goals />} />
-
-          {/* New route for OAuth callback handling */}
-          <Route path="/auth-callback" element={<AuthCallback />} />
-
-          {/* Route for 404 or unknown paths */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </TooltipProvider>
+      <AuthProvider> {/* ✅ Step 2: wrap everything inside AuthProvider */}
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboardbank" element={<Dashboardbank />} />
+            <Route path="/goals" element={<Goals />} />
+            <Route path="/auth-callback" element={<AuthCallback />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </TooltipProvider>
+      </AuthProvider>
     </BrowserRouter>
   </QueryClientProvider>
 );

@@ -34,6 +34,8 @@ public class JwtTokenService {
         claims.put("email", user.getEmail());
         claims.put("fullName", user.getFullName());
         claims.put("id", user.getId());
+        claims.put("name", user.getFullName()); 
+        claims.put("picture", user.getProfilePicture());
         
         return createToken(claims, user.getEmail());
     }

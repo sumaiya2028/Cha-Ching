@@ -32,7 +32,7 @@ public class SecurityConfig {
     private JwtTokenService jwtTokenService;
 
     @Autowired
-    private PasswordEncoder passwordEncoder;  // Inject PasswordEncoder, no need to define it here
+    private PasswordEncoder passwordEncoder;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -54,14 +54,18 @@ public class SecurityConfig {
 
                     String email = oauth2User.getAttribute("email");
                     String fullName = oauth2User.getAttribute("name");
+                    String picture = (String) oauth2User.getAttribute("picture");  // Extract picture URL
 
                     System.out.println("OAuth2 login successful for: " + email);
 
-                    User user = userService.findOrCreateUser(email, fullName);
+                    // Create or find the user
+                    User user = userService.findOrCreateUser(email, fullName, picture);
 
+                    // Generate JWT token
                     String token = jwtTokenService.generateToken(user);
                     System.out.println("Generated JWT: " + token);
 
+                    // Send the token back to the client
                     response.sendRedirect("http://localhost:8080/auth-callback?token=" + token);
                 })
             )
