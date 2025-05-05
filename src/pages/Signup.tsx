@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import AnimatedBackground from '@/components/AnimatedBackground';
 import { FiArrowLeft, FiPhone, FiShield, FiCheck, FiLock, FiCreditCard, FiUser } from 'react-icons/fi';
+import { FcGoogle } from 'react-icons/fc';
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Dialog,
@@ -14,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 
 // Sample bank data
 const BANKS = [
@@ -25,9 +27,10 @@ const BANKS = [
   { id: 'pnb', name: 'Punjab National Bank', logo: '🏦' },
 ];
 
-const Signup = () => {
+const SignupComponent = () => {
   const [step, setStep] = useState(1);
   const [userName, setUserName] = useState('');
+  const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -37,11 +40,49 @@ const Signup = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
+  // Google Login Handler
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      try {
+        const { data } = await axios.post('/api/auth/google', {
+          token: tokenResponse.access_token
+        });
+
+        localStorage.setItem('token', data.token);
+        if (data.user) {
+          setUserName(data.user.name || '');
+          setEmail(data.user.email || '');
+        }
+
+        toast({
+          title: "Google Signup Successful!",
+          description: "Please connect your bank account",
+        });
+        setStep(4); // Skip to bank connection step
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Google Signup Failed",
+          description: "Please try another method",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Google Signup Failed",
+        description: "Please try again",
+      });
+    }
+  });
+
   const handleSendOtp = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate OTP sending
     setTimeout(() => {
       setIsLoading(false);
       toast({
@@ -56,7 +97,6 @@ const Signup = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate OTP verification
     setTimeout(() => {
       setIsLoading(false);
       toast({
@@ -92,19 +132,17 @@ const Signup = () => {
     }
     setIsLoading(true);
     
-    // Simulate bank connection process
     setTimeout(() => {
       setIsLoading(false);
       setShowSuccessDialog(true);
       
-      // Store user information in localStorage before redirecting
       localStorage.setItem('userInfo', JSON.stringify({
-        name: userName,
+        name: userName || 'Google User',
+        email: email,
         phone: phoneNumber,
         bank: BANKS.find(bank => bank.id === selectedBank)?.name || selectedBank
       }));
       
-      // Redirect to dashboard after a short delay
       setTimeout(() => {
         navigate('/dashboardbank');
       }, 2000);
@@ -152,6 +190,21 @@ const Signup = () => {
             <>
               <h2 className="text-3xl font-bold mb-2 neon-text">Connect Your Bank</h2>
               <p className="text-gray-400 mb-6">Enter your details to get started</p>
+
+              <Button 
+                onClick={() => handleGoogleLogin()}
+                disabled={isLoading}
+                className="w-full bg-white hover:bg-gray-100 text-black mb-4 flex items-center gap-2"
+              >
+                <FcGoogle className="h-5 w-5" />
+                {isLoading ? "Signing up..." : "Sign up with Google"}
+              </Button>
+
+              <div className="flex items-center my-4">
+                <div className="flex-grow h-px bg-gray-700"></div>
+                <span className="px-3 text-sm text-gray-500">OR</span>
+                <div className="flex-grow h-px bg-gray-700"></div>
+              </div>
               
               <form onSubmit={handleSendOtp} className="space-y-4">
                 <div>
@@ -209,6 +262,7 @@ const Signup = () => {
             </>
           )}
           
+          {/* Steps 2-5 remain exactly the same as your original code */}
           {step === 2 && (
             <>
               <h2 className="text-3xl font-bold mb-2 neon-text">Verify OTP</h2>
@@ -397,5 +451,12 @@ const Signup = () => {
     </div>
   );
 };
+
+// Wrap with Google provider
+const Signup = () => (
+  <GoogleOAuthProvider clientId="62629678556-4sdn31go99vlev9qtc2n5312orfo8s6h.apps.googleusercontent.com">
+    <SignupComponent />
+  </GoogleOAuthProvider>
+);
 
 export default Signup;

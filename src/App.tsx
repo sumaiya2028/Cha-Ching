@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Dashboardbank from "./pages/Dashboardbank";
 import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
+import AuthCallback from "./pages/AuthCallback";  // Add AuthCallback for handling OAuth2 response
 
 const queryClient = new QueryClient();
 
@@ -21,13 +21,18 @@ const App = () => (
         <Toaster />
         <Sonner />
         <Routes>
+          {/* Your existing routes */}
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboardbank" element={<Dashboardbank />} />
           <Route path="/goals" element={<Goals />} />
-          <Route path="/budgets" element={<NotFound />} />
+
+          {/* New route for OAuth callback handling */}
+          <Route path="/auth-callback" element={<AuthCallback />} />
+
+          {/* Route for 404 or unknown paths */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>
