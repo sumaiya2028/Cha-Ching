@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Currency } from 'lucide-react';
@@ -18,13 +17,20 @@ interface CurrencySelectorProps {
   onCurrencyChange: (currency: string) => void;
 }
 
-const CurrencySelector: React.FC<CurrencySelectorProps> = ({ 
-  currencies, 
-  currentCurrency, 
-  onCurrencyChange 
+const CurrencySelector: React.FC<CurrencySelectorProps> = ({
+  currencies,
+  currentCurrency,
+  onCurrencyChange
 }) => {
+  const [open, setOpen] = useState(false);
+
+  const handleSelect = (code: string) => {
+    onCurrencyChange(code);
+    setOpen(false); // Close the popover
+  };
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="flex items-center gap-2">
           <Currency className="h-4 w-4" />
@@ -40,7 +46,7 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({
                 key={code}
                 variant={currentCurrency === code ? "default" : "ghost"}
                 className="w-full justify-start text-sm"
-                onClick={() => onCurrencyChange(code)}
+                onClick={() => handleSelect(code)}
               >
                 <span className="mr-2">{currencyInfo.icon}</span>
                 <span>{currencyInfo.name}</span>

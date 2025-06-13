@@ -36,7 +36,7 @@ public class JwtTokenService {
         claims.put("id", user.getId());
         claims.put("name", user.getFullName()); 
         claims.put("picture", user.getProfilePicture());
-        
+
         return createToken(claims, user.getEmail());
     }
 
@@ -46,7 +46,7 @@ public class JwtTokenService {
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(subject)
+                .setSubject(subject) // sets email as subject
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -60,6 +60,13 @@ public class JwtTokenService {
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    // This is used by JwtAuthenticationFilter
+    public String extractEmail(String token) {
+        return extractClaim(token, Claims::getSubject);
+        // OR if email is in a custom claim:
+        // return extractAllClaims(token).get("email", String.class);
     }
 
     public Date extractExpiration(String token) {

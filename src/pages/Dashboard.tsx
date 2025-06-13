@@ -39,6 +39,7 @@ interface Goal {
   color: string;
 }
 
+
 // Define budget interface
 interface Budget {
   id: number;
@@ -186,6 +187,9 @@ const Dashboard = () => {
   
   const currentMonth = new Date().toISOString().substring(0, 7);
   
+  const handleDeleteBudget = (id: number) => { ///delete budget
+      setBudgets(prev => prev.filter(b => b.id !== id));
+    };
   // Format amount with currency symbol using our util function
   const formatAmount = (amount: number): string => {
     return formatAmountUtil(
@@ -369,11 +373,8 @@ const Dashboard = () => {
 
           {/* Tab Navigation */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
-            <TabsList className="glass w-full sm:w-auto grid sm:inline-flex grid-cols-3 sm:grid-cols-none h-auto sm:h-10">
-              <TabsTrigger value="overview" className="py-2">Overview</TabsTrigger>
-              <TabsTrigger value="transactions" className="py-2">Transactions</TabsTrigger>
-              <TabsTrigger value="budgets" className="py-2">Budgets</TabsTrigger>
-            </TabsList>
+              
+            
 
             {/* Tab Content */}
             <TabsContent value="overview">
@@ -403,6 +404,7 @@ const Dashboard = () => {
                 currentMonth={currentMonth}
                 formatAmount={formatAmount}
                 onAddBudget={handleAddBudget}
+                onDeleteBudget={handleDeleteBudget} //delete budget
                 currencies={currencies}
                 currentCurrency={currency}
                 categoryColors={categoryColors}
@@ -411,16 +413,7 @@ const Dashboard = () => {
           </Tabs>
             
           {/* Other tabs */}
-          {activeTab !== 'overview' && activeTab !== 'transactions' && activeTab !== 'budgets' && (
-            <div className="glass rounded-lg p-6 neon-border">
-              <h2 className="text-2xl font-bold mb-4 neon-text">
-                {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-              </h2>
-              <p className="text-gray-400">
-                This section is under development. Coming soon!
-              </p>
-            </div>
-          )}
+          
         </div>
       </div>
     </div>

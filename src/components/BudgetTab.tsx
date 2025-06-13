@@ -21,6 +21,7 @@ interface BudgetTabProps {
   currentMonth: string;
   formatAmount: (amount: number) => string;
   onAddBudget: (budget: Omit<Budget, "id" | "spent">) => void;
+  onDeleteBudget: (id: number) => void;
   currencies: Record<string, { symbol: string; rate: number }>;
   currentCurrency: string;
   categoryColors: Record<string, string>;
@@ -31,6 +32,7 @@ const BudgetTab: React.FC<BudgetTabProps> = ({
   currentMonth,
   formatAmount,
   onAddBudget,
+  onDeleteBudget, //delete budge
   currencies,
   currentCurrency,
   categoryColors
@@ -54,6 +56,7 @@ const BudgetTab: React.FC<BudgetTabProps> = ({
           budgets={budgets}
           currentMonth={currentMonth}
           formatAmount={formatAmount}
+          onDeleteBudget={onDeleteBudget} // ✅ passed to child component
         />
 
         <Card className="glass neon-border p-4">

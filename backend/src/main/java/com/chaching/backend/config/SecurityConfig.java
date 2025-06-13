@@ -3,14 +3,17 @@ package com.chaching.backend.config;
 import com.chaching.backend.model.User;
 import com.chaching.backend.service.JwtTokenService;
 import com.chaching.backend.service.UserService;
+import jakarta.servlet.Filter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -34,6 +37,9 @@ public class SecurityConfig {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -54,7 +60,7 @@ public class SecurityConfig {
 
                     String email = oauth2User.getAttribute("email");
                     String fullName = oauth2User.getAttribute("name");
-                    String picture = (String) oauth2User.getAttribute("picture");  // Extract picture URL
+                    String picture = (String) oauth2User.getAttribute("picture");
 
                     System.out.println("OAuth2 login successful for: " + email);
 
@@ -73,7 +79,9 @@ public class SecurityConfig {
                 .logoutSuccessUrl("http://localhost:8080/login")
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
-            );
+            )
+            // ⬇️ Register JWT Filter before UsernamePasswordAuthenticationFilter
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

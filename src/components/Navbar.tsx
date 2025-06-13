@@ -41,16 +41,15 @@ const Navbar = ({ activeTab, setActiveTab }) => {
     { id: 'overview', name: 'Overview', icon: FiHome },
     { id: 'transactions', name: 'Transactions', icon: FiPieChart },
     { id: 'budgets', name: 'Budgets', icon: FiBarChart2 },
-    { id: 'goals', name: 'Financial Goals', icon: FiTarget },
-    { id: 'settings', name: 'Settings', icon: FiSettings },
+
   ];
 
   return (
     <div className="sticky top-0 z-50 bg-gray-900 h-16 px-4 flex items-center justify-between border-b border-gray-800">
       {/* Logo */}
       <div className="flex items-center">
-        <div className="h-8 w-8 bg-gradient-to-br from-neon-purple to-neon-magenta rounded-md flex items-center justify-center text-white font-bold">
-          C
+        <div className="h-8 w-8 rounded-md flex items-center justify-center text-white font-bold">
+          <img src="/Cha-Ching.png" alt="Logo" className="h-6 w-6 object-contain" />
         </div>
         <span className="ml-2 font-bold text-lg text-white">Cha-Ching</span>
       </div>

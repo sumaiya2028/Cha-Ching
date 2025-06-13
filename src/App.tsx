@@ -12,6 +12,7 @@ import Goals from "./pages/Goals";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
 import { AuthProvider } from "@/context/AuthProvider";
+import Main from "./pages/Main";
 
 
 const queryClient = new QueryClient();
@@ -24,7 +25,8 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Main />} />
+            <Route path="/index" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<Dashboard />} />

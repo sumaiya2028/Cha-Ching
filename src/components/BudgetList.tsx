@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, ChartPie } from "lucide-react";
+import { AlertTriangle, ChartPie,Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Budget {
@@ -29,9 +29,10 @@ interface BudgetListProps {
   budgets: Budget[];
   currentMonth: string;
   formatAmount: (amount: number) => string;
+  onDeleteBudget: (id: number) => void; //delete budget
 }
 
-const BudgetList: React.FC<BudgetListProps> = ({ budgets, currentMonth, formatAmount }) => {
+const BudgetList: React.FC<BudgetListProps> = ({ budgets, currentMonth, formatAmount,onDeleteBudget }) => {
   const [activeMonth, setActiveMonth] = useState<string>(currentMonth);
   
   // Get unique months from budgets
@@ -48,6 +49,7 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets, currentMonth, formatAm
   
   return (
     <Card className="glass neon-border p-4">
+    
       <div className="flex items-center mb-4">
         <ChartPie className="text-neon-purple mr-2" />
         <h2 className="text-lg font-semibold">Monthly Budgets</h2>
@@ -63,6 +65,7 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets, currentMonth, formatAm
                 </TabsTrigger>
               ))}
             </TabsList>
+            
           </Tabs>
           
           <div className="space-y-4">
@@ -81,50 +84,65 @@ const BudgetList: React.FC<BudgetListProps> = ({ budgets, currentMonth, formatAm
                     : '';
                 
                 return (
-                  <div key={budget.id} className="space-y-2">
-                    <div className="flex justify-between">
-                      <div className="flex items-center">
-                        <span 
-                          className="h-3 w-3 rounded-full mr-2" 
-                          style={{ backgroundColor: color }}
-                        />
-                        <span className="font-medium">{budget.category}</span>
-                      </div>
-                      <span>
-                        {formatAmount(budget.spent)} / {formatAmount(budget.amount)}
-                      </span>
-                    </div>
-                    
-                    <Progress 
-                      value={percentage > 100 ? 100 : percentage} 
-                      className="h-2"
-                      indicatorClassName={indicatorColor || ''}
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        "--indicator-color": isOverLimit 
-                          ? '#ef4444' 
-                          : isNearLimit 
-                            ? '#f97316' 
-                            : color
-                      } as React.CSSProperties}
-                    />
-                    
-                    {isNearLimit && (
-                      <Alert variant={isOverLimit ? "destructive" : "default"} className={
-                        isOverLimit 
-                          ? "bg-red-900/20 border-red-700" 
-                          : "bg-orange-900/20 border-orange-700"
-                      }>
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>
-                          {isOverLimit 
-                            ? `Over budget by ${formatAmount(budget.spent - budget.amount)}!` 
-                            : `You've used ${percentage.toFixed(0)}% of your ${budget.category} budget`
-                          }
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
+                  
+                  
+  <div key={budget.id} className="space-y-2 relative">
+    {/* Delete Button */}
+    <button
+      onClick={() => onDeleteBudget(budget.id)}
+      className="absolute top-0 right-0 text-red-500 hover:text-red-700 p-1"
+      title="Delete budget"
+    >
+      <Trash2 className="w-4 h-4" />
+    </button>
+
+    {/* Budget Info */}
+    <div className="flex justify-between pr-6">
+      <div className="flex items-center">
+        <span 
+          className="h-3 w-3 rounded-full mr-2" 
+          style={{ backgroundColor: color }}
+        />
+        <span className="font-medium">{budget.category}</span>
+      </div>
+      <span>
+        {formatAmount(budget.spent)} / {formatAmount(budget.amount)}
+      </span>
+    </div>
+    
+    <Progress 
+      value={percentage > 100 ? 100 : percentage} 
+      className="h-2"
+      indicatorClassName={indicatorColor || ''}
+      style={{
+        background: 'rgba(255, 255, 255, 0.1)',
+        "--indicator-color": isOverLimit 
+          ? '#ef4444' 
+          : isNearLimit 
+            ? '#f97316' 
+            : color
+      } as React.CSSProperties}
+    />
+    
+    {isNearLimit && (
+      <Alert 
+        variant={isOverLimit ? "destructive" : "default"} 
+        className={
+          isOverLimit 
+            ? "bg-red-900/20 border-red-700" 
+            : "bg-orange-900/20 border-orange-700"
+        }
+      >
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          {isOverLimit 
+            ? `Over budget by ${formatAmount(budget.spent - budget.amount)}!` 
+            : `You've used ${percentage.toFixed(0)}% of your ${budget.category} budget`
+          }
+        </AlertDescription>
+      </Alert>
+    )}
+  </div>
                 );
               })
             ) : (

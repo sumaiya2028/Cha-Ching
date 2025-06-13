@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,16 +25,22 @@ const TransactionsTab: React.FC<TransactionsTabProps> = ({
   onTimeFilterChange,
   formatAmount
 }) => {
+  // Sort transactions descending by date once for reuse
+  const sortedTransactions = React.useMemo(() => 
+    [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), 
+  [transactions]);
+
   return (
     <div className="glass rounded-lg p-4 md:p-6 neon-border">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 space-y-3 md:space-y-0">
         <h2 className="text-xl font-bold neon-text">Transaction History</h2>
         
         <div className="flex items-center gap-2">
-          <FiFilter className="text-gray-400" />
+          <FiFilter className="text-gray-400" aria-hidden="true" />
           <Select
             value={timeFilter}
             onValueChange={(value: 'all' | '7days' | '1month') => onTimeFilterChange(value)}
+            aria-label="Filter transactions by time"
           >
             <SelectTrigger className="w-[130px] md:w-[180px]">
               <SelectValue placeholder="Filter by time" />
@@ -50,7 +55,7 @@ const TransactionsTab: React.FC<TransactionsTabProps> = ({
       </div>
       
       <div className="mt-4 overflow-auto">
-        {transactions.length > 0 ? (
+        {sortedTransactions.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow className="border-gray-700">
@@ -62,22 +67,28 @@ const TransactionsTab: React.FC<TransactionsTabProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                .map((transaction) => (
+              {sortedTransactions.map((transaction) => (
                 <TableRow key={transaction.id} className="border-gray-700">
                   <TableCell className="font-medium">{transaction.date}</TableCell>
                   <TableCell>{transaction.description}</TableCell>
                   <TableCell>{transaction.category || 'Uncategorized'}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      transaction.type === 'income' ? 'bg-green-900/30 text-green-400' : 'bg-orange-900/30 text-orange-400'
-                    }`}>
-                      {transaction.type?.charAt(0).toUpperCase() + (transaction.type?.slice(1) || '')}
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        transaction.type === 'income'
+                          ? 'bg-green-900/30 text-green-400'
+                          : 'bg-orange-900/30 text-orange-400'
+                      }`}
+                    >
+                      {transaction.type
+                        ? transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)
+                        : 'N/A'}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
                     <span className={transaction.type === 'income' ? 'text-neon-green' : ''}>
-                      {transaction.type === 'income' ? '+' : ''}{formatAmount(transaction.amount)}
+                      {transaction.type === 'income' ? '+' : ''}
+                      {formatAmount(transaction.amount)}
                     </span>
                   </TableCell>
                 </TableRow>
@@ -91,26 +102,32 @@ const TransactionsTab: React.FC<TransactionsTabProps> = ({
         )}
       </div>
       
-      {/* Mobile-friendly transaction list (shows on small screens only) */}
+      {/* Mobile-friendly transaction list (visible only on small screens) */}
       <div className="block md:hidden mt-4">
-        {transactions.length > 0 ? (
+        {sortedTransactions.length > 0 ? (
           <div className="space-y-4">
-            {transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-              .map((transaction) => (
+            {sortedTransactions.map((transaction) => (
               <div key={transaction.id} className="glass p-3 rounded-lg border border-gray-800">
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-medium">{transaction.description}</span>
                   <span className={transaction.type === 'income' ? 'text-neon-green' : ''}>
-                    {transaction.type === 'income' ? '+' : ''}{formatAmount(transaction.amount)}
+                    {transaction.type === 'income' ? '+' : ''}
+                    {formatAmount(transaction.amount)}
                   </span>
                 </div>
                 <div className="text-sm text-gray-400">
                   <div className="flex justify-between">
                     <span>{transaction.date}</span>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      transaction.type === 'income' ? 'bg-green-900/30 text-green-400' : 'bg-orange-900/30 text-orange-400'
-                    }`}>
-                      {transaction.type?.charAt(0).toUpperCase() + (transaction.type?.slice(1) || '')}
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        transaction.type === 'income'
+                          ? 'bg-green-900/30 text-green-400'
+                          : 'bg-orange-900/30 text-orange-400'
+                      }`}
+                    >
+                      {transaction.type
+                        ? transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)
+                        : 'N/A'}
                     </span>
                   </div>
                   <div>{transaction.category || 'Uncategorized'}</div>
