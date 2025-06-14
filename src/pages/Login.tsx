@@ -43,7 +43,7 @@ const Login = () => {
           <p className="text-gray-400 mb-6">Sign in to continue to Cha-Ching</p>
           
           <Button 
-            onClick={() => window.location.href = 'http://localhost:8081/oauth2/authorization/google'}
+            onClick={() => window.location.href = 'https://cha-ching-backend-production.up.railway.app'}
             className="w-full bg-white hover:bg-gray-100 text-black mb-4 flex items-center justify-center gap-2"
           >
             <FcGoogle className="h-5 w-5" />

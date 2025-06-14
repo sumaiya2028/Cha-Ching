@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: ${PORT:8081}
 
 spring:
   security:
@@ -9,7 +9,7 @@ spring:
           google:
             client-id: 62629678556-4sdn31go99vlev9qtc2n5312orfo8s6h.apps.googleusercontent.com
             client-secret: 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
-            redirect-uri: http://localhost:8081/login/oauth2/code/google
+            redirect-uri: https://cha-ching-backend-production.up.railway.app
             scope:
               - openid
               - email

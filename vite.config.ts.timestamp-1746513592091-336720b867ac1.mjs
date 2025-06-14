@@ -10,7 +10,7 @@ var vite_config_default = defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       "/api": {
-        target: "http://localhost:8081",
+        target: "https://cha-ching-backend-production.up.railway.app",
         changeOrigin: true,
         secure: false
       }

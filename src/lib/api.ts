@@ -1,6 +1,6 @@
 // src/lib/api.ts
 
-const API_BASE_URL = "http://localhost:8081/api";
+const API_BASE_URL = "https://cha-ching-backend-production.up.railway.app";
 
 function getToken(): string | null {
   return localStorage.getItem("token");
