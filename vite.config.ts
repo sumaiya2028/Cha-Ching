@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       "/api": {
-        target: "https://cha-ching-backend-production.up.railway.app",
+        target: "http://localhost:8081",
         changeOrigin: true,
         secure: false,
       },

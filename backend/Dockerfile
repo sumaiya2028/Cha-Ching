@@ -1,5 +1,14 @@
-# Dockerfile for Spring Boot
-FROM eclipse-temurin:21-jdk-alpine
-ARG JAR_FILE=target/backend-0.0.1-SNAPSHOT.jar
-COPY ${JAR_FILE} app.jar
-ENTRYPOINT ["java","-jar","/app.jar"]
+# Use OpenJDK 21 base image
+FROM eclipse-temurin:21-jdk
+
+# Create app directory
+WORKDIR /app
+
+# Copy JAR from target folder to app directory
+COPY target/backend-0.0.1-SNAPSHOT.jar app.jar
+
+# Expose port
+EXPOSE 8081
+
+# Run the jar
+ENTRYPOINT ["java", "-jar", "app.jar"]
