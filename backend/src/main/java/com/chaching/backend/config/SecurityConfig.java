@@ -72,15 +72,14 @@ public class SecurityConfig {
                     System.out.println("Generated JWT: " + token);
 
                     // Send the token back to the client
-                    response.sendRedirect("http://localhost:8080/auth-callback?token=" + token);
+                    response.sendRedirect("https://cha-ching-90f7d.web.app/auth-callback?token=" + token);
                 })
             )
             .logout(logout -> logout
-                .logoutSuccessUrl("http://localhost:8080/login")
+                .logoutSuccessUrl("https://cha-ching-90f7d.web.app/login")
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
             )
-            // ⬇️ Register JWT Filter before UsernamePasswordAuthenticationFilter
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -89,7 +88,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:8080"));
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:8080",
+            "https://cha-ching-90f7d.web.app"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);

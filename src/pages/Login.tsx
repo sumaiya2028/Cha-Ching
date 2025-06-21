@@ -43,7 +43,10 @@ const Login = () => {
           <p className="text-gray-400 mb-6">Sign in to continue to Cha-Ching</p>
           
           <Button 
-            onClick={() => window.location.href = 'http://localhost:8081/oauth2/authorization/google'}
+            onClick={() => {
+              const backendBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081';
+              window.location.href = `${backendBaseUrl}/oauth2/authorization/google`;
+            }}
             className="w-full bg-white hover:bg-gray-100 text-black mb-4 flex items-center justify-center gap-2"
           >
             <FcGoogle className="h-5 w-5" />
