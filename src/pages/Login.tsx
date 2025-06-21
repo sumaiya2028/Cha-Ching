@@ -44,8 +44,7 @@ const Login = () => {
           
           <Button 
             onClick={() => {
-              const backendBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081';
-              window.location.href = `${backendBaseUrl}/oauth2/authorization/google`;
+              window.location.href = "https://cha-ching-r5er.onrender.com/oauth2/authorization/google";
             }}
             className="w-full bg-white hover:bg-gray-100 text-black mb-4 flex items-center justify-center gap-2"
           >
