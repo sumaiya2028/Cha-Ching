@@ -22,9 +22,9 @@ spring:
             user-name-attribute: sub
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/financetracker
-    username: postgres
-    password: alohomora
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -37,7 +37,7 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 jwt:
-  secret: S9kf!pZ29x$kL3gM8^vqY7bT!hN#Q2rLzA*BwEfU
+  secret: ${JWT_SECRET:S9kf!pZ29x$kL3gM8^vqY7bT!hN#Q2rLzA*BwEfU}
   expiration: 3600000
 
 frontend:
