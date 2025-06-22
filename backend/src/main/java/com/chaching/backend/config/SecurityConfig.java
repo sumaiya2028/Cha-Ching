@@ -64,14 +64,11 @@ public class SecurityConfig {
 
                     System.out.println("OAuth2 login successful for: " + email);
 
-                    // Create or find the user
                     User user = userService.findOrCreateUser(email, fullName, picture);
 
-                    // Generate JWT token
                     String token = jwtTokenService.generateToken(user);
                     System.out.println("Generated JWT: " + token);
 
-                    // Send the token back to the client
                     response.sendRedirect("https://cha-ching-90f7d.web.app/auth-callback?token=" + token);
                 })
             )
